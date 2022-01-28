@@ -406,6 +406,11 @@ public class ApiUtils {
         return getUrlForChat(version, baseUrl, roomToken) + "/share";
     }
 
+    /*Kikao Utilities*/
+    public static String getUrlForKikaoUtilities(String baseUrl, String token) {
+        return baseUrl + "/apps/kikaoutilities/api/0.1/activities?token="+token;
+    }
+
     public static String getUrlForHoverCard(String baseUrl, String userId) { return baseUrl + ocsApiVersion +
         "/hovercard/v1/" + userId; }
 

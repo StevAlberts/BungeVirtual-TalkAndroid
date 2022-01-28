@@ -92,12 +92,8 @@ public class Conversation {
     public Long lobbyTimer;
     @JsonField(name = "lastReadMessage")
     public int lastReadMessage;
-    @JsonField(name = "hasCall")
-    public boolean hasCall;
     @JsonField(name = "callFlag")
     public int callFlag;
-    @JsonField(name = "canStartCall")
-    public boolean canStartCall;
 
     @JsonField(name = "canLeaveConversation")
     public Boolean canLeaveConversation;
@@ -110,6 +106,13 @@ public class Conversation {
 
     @JsonField(name = "notificationCalls")
     public Integer notificationCalls;
+
+    @JsonField(name = "hasCall")
+    public boolean hasCall;
+
+    public boolean isHasCall() {
+        return hasCall;
+    }
 
     public boolean isPublic() {
         return (ConversationType.ROOM_PUBLIC_CALL.equals(type));
@@ -263,16 +266,8 @@ public class Conversation {
         return this.lastReadMessage;
     }
 
-    public boolean getHasCall() {
-        return hasCall;
-    }
-
     public int getCallFlag() {
         return this.callFlag;
-    }
-
-    public boolean getCanStartCall() {
-        return canStartCall;
     }
 
     public Boolean getUnreadMentionDirect() {
@@ -382,16 +377,8 @@ public class Conversation {
         this.lastReadMessage = lastReadMessage;
     }
 
-    public void setHasCall(boolean hasCall) {
-        this.hasCall = hasCall;
-    }
-
     public void setCallFlag(int callFlag) {
         this.callFlag = callFlag;
-    }
-
-    public void setCanStartCall(boolean canStartCall) {
-        this.canStartCall = canStartCall;
     }
 
     public void setUnreadMentionDirect(Boolean unreadMentionDirect) {
@@ -431,13 +418,7 @@ public class Conversation {
         if (lastReadMessage != that.lastReadMessage) {
             return false;
         }
-        if (hasCall != that.hasCall) {
-            return false;
-        }
         if (callFlag != that.callFlag) {
-            return false;
-        }
-        if (canStartCall != that.canStartCall) {
             return false;
         }
         if (!Objects.equals(roomId, that.roomId)) {
@@ -534,9 +515,7 @@ public class Conversation {
         result = 31 * result + (lobbyState != null ? lobbyState.hashCode() : 0);
         result = 31 * result + (lobbyTimer != null ? lobbyTimer.hashCode() : 0);
         result = 31 * result + lastReadMessage;
-        result = 31 * result + (hasCall ? 1 : 0);
         result = 31 * result + callFlag;
-        result = 31 * result + (canStartCall ? 1 : 0);
         result = 31 * result + (canLeaveConversation != null ? canLeaveConversation.hashCode() : 0);
         result = 31 * result + (canDeleteConversation != null ? canDeleteConversation.hashCode() : 0);
         result = 31 * result + (notificationCalls != null ? notificationCalls.hashCode() : 0);
@@ -571,9 +550,7 @@ public class Conversation {
                 ", lobbyState=" + lobbyState +
                 ", lobbyTimer=" + lobbyTimer +
                 ", lastReadMessage=" + lastReadMessage +
-                ", hasCall=" + hasCall +
                 ", callFlag=" + callFlag +
-                ", canStartCall=" + canStartCall +
                 ", canLeaveConversation=" + canLeaveConversation +
                 ", canDeleteConversation=" + canDeleteConversation +
                 ", notificationCalls=" + notificationCalls +
@@ -603,7 +580,9 @@ public class Conversation {
         ROOM_TYPE_ONE_TO_ONE_CALL,
         ROOM_GROUP_CALL,
         ROOM_PUBLIC_CALL,
-        ROOM_SYSTEM
+        ROOM_SYSTEM,
+        ROOM_PLENARY_CALL,
+        ROOM_COMMITTEE_CALL,
     }
 
 }

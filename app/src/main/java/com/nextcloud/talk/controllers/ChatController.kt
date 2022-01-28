@@ -155,6 +155,7 @@ import com.nextcloud.talk.utils.NotificationUtils
 import com.nextcloud.talk.utils.UriUtils
 import com.nextcloud.talk.utils.bundle.BundleKeys
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ACTIVE_CONVERSATION
+import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_CONVERSATION_TYPE
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ROOM_ID
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ROOM_TOKEN
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_USER_ENTITY
@@ -223,6 +224,7 @@ class ChatController(args: Bundle) :
     val disposableList = ArrayList<Disposable>()
 
     var roomToken: String? = null
+    var conversationType: Conversation.ConversationType? = null
     val conversationUser: UserEntity?
     val roomPassword: String
     var credentials: String? = null
@@ -277,6 +279,7 @@ class ChatController(args: Bundle) :
         this.conversationUser = args.getParcelable(KEY_USER_ENTITY)
         this.roomId = args.getString(KEY_ROOM_ID, "")
         this.roomToken = args.getString(KEY_ROOM_TOKEN, "")
+        this.conversationType = args.get(KEY_CONVERSATION_TYPE) as Conversation.ConversationType?
         this.sharedText = args.getString(BundleKeys.KEY_SHARED_TEXT, "")
 
         Log.d(TAG, "   roomToken = $roomToken")
@@ -304,6 +307,7 @@ class ChatController(args: Bundle) :
     }
 
     private fun getRoomInfo() {
+        Log.d(TAG, "getRoomInfo ...")
         val shouldRepeat = CapabilitiesUtil.hasSpreedFeatureCapability(conversationUser, "webinary-lobby")
         if (shouldRepeat) {
             checkingLobbyStatus = true
@@ -322,12 +326,19 @@ class ChatController(args: Bundle) :
 
                     @Suppress("Detekt.TooGenericExceptionCaught")
                     override fun onNext(roomOverall: RoomOverall) {
+
                         currentConversation = roomOverall.ocs.data
                         Log.d(
                             TAG,
                             "getRoomInfo. token: " + currentConversation?.getToken() +
                                 " sessionId: " + currentConversation?.sessionId
                         )
+                        //if no call in going on and meeting activity is started, then drop the user from the room
+                        if (!currentConversation!!.hasCall &&  CallActivity.getmInstanceActivity()!=null) {
+                            CallActivity.getmInstanceActivity().meetingEnded()
+                            leaveRoom()
+                        }
+
                         loadAvatarForStatusBar()
 
                         setTitle()
@@ -2252,7 +2263,9 @@ class ChatController(args: Bundle) :
                 return true
             }
             R.id.conversation_video_call -> {
-                if (conversationVideoMenuItem?.icon?.alpha == FULLY_OPAQUE_INT) {
+                Log.d(TAG, "join meeting tapped ")
+                if (true) {
+                    Log.d(TAG, "join meeting tapped true ")
                     startACall(false)
                     return true
                 }
@@ -2298,14 +2311,10 @@ class ChatController(args: Bundle) :
     }
 
     private fun startACall(isVoiceOnlyCall: Boolean) {
-        if (currentConversation?.canStartCall == false && currentConversation?.hasCall == false) {
-            Toast.makeText(context, R.string.startCallForbidden, Toast.LENGTH_LONG).show()
-        } else {
-            ApplicationWideCurrentRoomHolder.getInstance().isDialing = true
-            val callIntent = getIntentForCall(isVoiceOnlyCall)
-            if (callIntent != null) {
-                startActivity(callIntent)
-            }
+        ApplicationWideCurrentRoomHolder.getInstance().isDialing = true
+        val callIntent = getIntentForCall(isVoiceOnlyCall)
+        if (callIntent != null) {
+            startActivity(callIntent)
         }
     }
 
@@ -2318,6 +2327,7 @@ class ChatController(args: Bundle) :
             bundle.putString(BundleKeys.KEY_CONVERSATION_PASSWORD, roomPassword)
             bundle.putString(BundleKeys.KEY_MODIFIED_BASE_URL, conversationUser?.baseUrl)
             bundle.putString(BundleKeys.KEY_CONVERSATION_NAME, it.displayName)
+            bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, it.type)
 
             if (isVoiceOnlyCall) {
                 bundle.putBoolean(BundleKeys.KEY_CALL_VOICE_ONLY, true)
@@ -2434,6 +2444,8 @@ class ChatController(args: Bundle) :
                                     bundle.putParcelable(KEY_USER_ENTITY, conversationUser)
                                     bundle.putString(KEY_ROOM_TOKEN, roomOverall.getOcs().getData().getToken())
                                     bundle.putString(KEY_ROOM_ID, roomOverall.getOcs().getData().getRoomId())
+                                    bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, roomOverall.getOcs().getData()
+                                        .type)
 
                                     // FIXME once APIv2+ is used only, the createRoom already returns all the data
                                     ncApi!!.getRoom(
@@ -2543,7 +2555,7 @@ class ChatController(args: Bundle) :
             menu.findItem(R.id.action_forward_message).isVisible =
                 ChatMessage.MessageType.REGULAR_TEXT_MESSAGE == message.getMessageType()
             menu.findItem(R.id.action_mark_as_unread).isVisible = message.previousMessageId > NO_PREVIOUS_MESSAGE_ID &&
-                ChatMessage.MessageType.SYSTEM_MESSAGE != message.getMessageType() && BuildConfig.DEBUG
+                ChatMessage.MessageType.SYSTEM_MESSAGE != message.getMessageType()
             if (menu.hasVisibleItems()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     setForceShowIcon(true)
@@ -2723,6 +2735,8 @@ class ChatController(args: Bundle) :
                         bundle.putParcelable(KEY_USER_ENTITY, conversationUser)
                         bundle.putString(KEY_ROOM_TOKEN, roomOverall.ocs.data.token)
                         bundle.putString(KEY_ROOM_ID, roomOverall.ocs.data.roomId)
+                        bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, roomOverall.getOcs().getData()
+                            .type)
 
                         if (conversationUser != null) {
                             bundle.putParcelable(

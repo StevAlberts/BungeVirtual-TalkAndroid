@@ -270,12 +270,27 @@ public class ConversationItem extends AbstractFlexibleItem<ConversationItem.Conv
                         holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                        R.drawable.ic_circular_group));
                     break;
+                case ROOM_COMMITTEE_CALL:
+                    holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
+                                                                                   R.drawable.ic_circular_group));
+                    break;
                 case ROOM_PUBLIC_CALL:
                         holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                        R.drawable.ic_circular_link));
                     break;
+                case ROOM_PLENARY_CALL:
+                    holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
+                                                                                   R.drawable.ic_circular_group));
+                    break;
                 default:
                     holder.dialogAvatar.setVisibility(View.GONE);
+            }
+
+
+            //overwrite the icon for calls in progress
+            if (conversation.hasCall){
+                holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
+                                                                               R.drawable.ic_call_in_progess));
             }
         }
     }

@@ -1,27 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
   <resources>
-    <string name="account_icon">Kontoikon</string>
-    <string name="appbar_search_in">Sök i %s</string>
-    <string name="avatar">Avatar</string>
-    <string name="choose_avatar_from_cloud">Välj avatar från moln</string>
-    <string name="delete_avatar">Ta bort avatar</string>
-    <string name="edit">Ändra</string>
-    <string name="encrypted">Krypterad</string>
-    <string name="failed_to_save">Misslyckades att spara  %1$s</string>
-    <string name="file_list_folder">mapp</string>
-    <string name="file_list_loading">Laddar…</string>
-    <string name="filename_progress">%1$s (%2$d)</string>
-    <string name="lock_symbol">Låssymbol</string>
-    <string name="menu_item_sort_by_date_newest_first">Nyast först</string>
-    <string name="menu_item_sort_by_date_oldest_first">Äldst först</string>
-    <string name="menu_item_sort_by_name_a_z">A - Ö</string>
-    <string name="menu_item_sort_by_name_z_a">Ö - A</string>
-    <string name="menu_item_sort_by_size_biggest_first">Störst först</string>
-    <string name="menu_item_sort_by_size_smallest_first">Minst först</string>
-    <string name="nc_Server_account_imported">Valt konto är nu importerat och tillgängligt</string>
     <string name="nc_about">Om</string>
-    <string name="nc_account_chooser_active_user">Aktiv användare</string>
-    <string name="nc_account_chooser_add_account">Lägg till konto</string>
     <string name="nc_account_scheduled_for_deletion">Kontot är schemalagt för radering och kan inte ändras</string>
     <string name="nc_add">Lägg till</string>
     <string name="nc_add_to_favorites">Lägg till som favorit</string>
@@ -72,6 +51,7 @@
     <string name="nc_external_server_failed">Misslyckades med att hämta signaleringsinställningar</string>
     <string name="nc_failed_to_perform_operation">Ledsen, någonting gick fel!</string>
     <string name="nc_file_browser_back">Tillbaka</string>
+    <string name="nc_file_browser_refresh">Uppdatera</string>
     <string name="nc_following_link">Användare följer en offentlig länk</string>
     <string name="nc_formatted_message_you">Du: %1$s</string>
     <string name="nc_get_from_provider">Har du inte en server än?\nKlicka här för att få en från en leverantör</string>
@@ -99,6 +79,7 @@
     <string name="nc_manual">Inte inställd</string>
     <string name="nc_microphone_permission_permanently_denied">För att aktivera röstkommunikation vänligen bevilja \"Mikrofon\"-tillstånd i systeminställningar.</string>
     <string name="nc_moderator">Moderator</string>
+    <string name="nc_mute_calls">Tysta alla samtal</string>
     <string name="nc_never">Gick aldrig med</string>
     <string name="nc_new_conversation">Ny konversation</string>
     <string name="nc_new_messages">Olästa meddelanden</string>
@@ -113,6 +94,9 @@
     <string name="nc_none">Ingen</string>
     <string name="nc_not_defined_error">Okänt fel</string>
     <string name="nc_notification_channel">%1$s på %2$s aviseringskanal</string>
+    <string name="nc_notification_channel_calls">Samtal aviseringskanal</string>
+    <string name="nc_notification_channel_calls_description">Visar inkommande samtal</string>
+    <string name="nc_notification_channel_messages">Meddelande aviseringskanal</string>
     <string name="nc_notification_settings">Meddelandeinställningar</string>
     <string name="nc_notify_me_always">Meddela alltid</string>
     <string name="nc_notify_me_mention">Meddela när omnämnd</string>

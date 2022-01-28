@@ -719,6 +719,9 @@ class ConversationInfoController(args: Bundle) :
             Conversation.ConversationType.ROOM_GROUP_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
                 R.drawable.ic_circular_group
             )
+            Conversation.ConversationType.ROOM_COMMITTEE_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
+                R.drawable.ic_circular_group
+            )
             Conversation.ConversationType.ROOM_PUBLIC_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
                 R.drawable.ic_circular_link
             )
@@ -732,6 +735,13 @@ class ConversationInfoController(args: Bundle) :
 
             else -> {
             }
+        }
+
+        //overwrite the icon for calls in progress
+        if (conversation!!.hasCall) {
+            binding.avatarImage.hierarchy.setPlaceholderImage(
+                R.drawable.ic_call_in_progess
+            )
         }
     }
 

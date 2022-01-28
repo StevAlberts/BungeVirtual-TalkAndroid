@@ -35,9 +35,9 @@
     <string name="nc_server_connect">Test server connection</string>
     <string name="nc_server_helper_text">The link to your %1$s web interface when you open it in the browser.</string>
     <string name="nc_server_testing_connection">Testing connection</string>
-    <string name="nc_server_unsupported">Server does not have supported Talk app installed</string>
+    <string name="nc_server_unsupported">Server does not have supported bungevirtual app installed</string>
 
-    <string name="nc_server_url">Server address https://…</string>
+    <string name="nc_server_url">bungevirtual.com</string>
     <string name="nc_server_not_installed">Please finish your %1$s installation</string>
     <string name="nc_server_db_upgrade_needed">Please upgrade your %1$s database</string>
     <string name="nc_server_maintenance">Please bring your %1$s out of maintenance</string>
@@ -209,7 +209,7 @@
     <string name="nc_call_video">%s video call</string>
     <string name="nc_call_unknown">%s call</string>
     <string name="nc_call_incoming">INCOMING</string>
-    <string name="nc_call_ringing">RINGING</string>
+    <string name="nc_call_ringing">JOINING</string>
     <string name="nc_connecting_call">Connecting…</string>
     <string name="nc_calling">Calling…</string>
     <string name="nc_incoming_call">Incoming call from</string>
@@ -219,7 +219,7 @@
     <string name="nc_call_timeout">No response in 45 seconds, tap to try again</string>
     <string name="nc_call_reconnecting">Reconnecting…</string>
     <string name="nc_offline">Currently offline, please check your connectivity</string>
-    <string name="nc_leaving_call">Leaving call…</string>
+    <string name="nc_leaving_call">Leaving Meeting...</string>
     <string name="nc_call_state_in_call">%1$s in call</string>
     <string name="nc_call_state_with_phone">%1$s with phone</string>
     <string name="nc_call_state_with_video">%1$s with video</string>
@@ -328,10 +328,10 @@
     <!-- Other -->
     <string name="nc_limit_hit">%s characters limit has been hit</string>
     <string name="nc_email">Email</string>
-    <string name="nc_group">Group</string>
-    <string name="nc_circle">Circle</string>
-    <string name="nc_groups">Groups</string>
-    <string name="nc_circles">Circles</string>
+    <string name="nc_group">Meeting</string>
+    <string name="nc_circle">Committee</string>
+    <string name="nc_groups">Meetings</string>
+    <string name="nc_circles">Committees</string>
     <string name="nc_participants">Participants</string>
     <string name="nc_participants_add">Add participants</string>
 
@@ -383,7 +383,6 @@
     <string name="nc_reply_privately">Reply privately</string>
     <string name="nc_delete_message">Delete</string>
     <string name="nc_delete_message_leaked_to_matterbridge">Message deleted successfully, but it might have been leaked to other services</string>
-    <string name="startCallForbidden">You are not allowed to start a call</string>
 
     <string name="share">Share</string>
     <string name="send_to">Send to</string>
@@ -492,4 +491,17 @@
     <string name="take_photo_send">Send</string>
     <string name="take_photo_error_deleting_picture">Error taking picture</string>
     <string name="take_photo_permission">Taking a photo is not possible without permissions</string>
+    <string name="kikao_request_to_speak">Request To Speak</string>
+    <string name="kikao_request_to_intervene">Request To Intervene</string>
+    <string name="kikao_count_down_placeholder">Count Down</string>
+    <string name="kikao_time_left">Time left</string>
+    <string name="join_meeting">Join Meeting</string>
+    <string name="back_to_meeting">Back To Meeting</string>
+    <string name="meeting_in_progress">Call in progress</string>
+    <string name="logout">Log out</string>
+    <string name="kikaoutils_api_base_url">https://bungevirtual.com/</string>
+    <string name="nc_in_meeting">In Meeting</string>
+    <string name="nc_invited">Invited</string>
+    <string name="nc_meeting_ended_leaving">Meeting has ended</string>
+
 </resources>

@@ -49,9 +49,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import autodagger.AutoInjector;
-import butterknife.BindView;
-import butterknife.ButterKnife;
 import eu.davidea.flexibleadapter.FlexibleAdapter;
 import eu.davidea.flexibleadapter.items.AbstractFlexibleItem;
 import eu.davidea.flexibleadapter.items.IFilterable;

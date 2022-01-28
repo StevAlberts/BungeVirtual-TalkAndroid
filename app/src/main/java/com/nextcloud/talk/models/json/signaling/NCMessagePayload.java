@@ -43,6 +43,18 @@ public class NCMessagePayload {
     @JsonField(name = "name")
     String name;
 
+    @JsonField(name = "state")
+    Boolean state;
+
+    @JsonField(name = "timestamp")
+    String timestamp;
+
+    @JsonField(name = "duration")
+    Integer duration;
+
+    @JsonField(name = "sessionId")
+    String sessionId;
+
     public String getType() {
         return this.type;
     }
@@ -81,6 +93,38 @@ public class NCMessagePayload {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Boolean getState() {
+        return state;
+    }
+
+    public void setState(Boolean state) {
+        this.state = state;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public boolean equals(final Object o) {
