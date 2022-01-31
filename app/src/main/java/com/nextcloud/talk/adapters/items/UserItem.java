@@ -290,6 +290,7 @@ public class UserItem extends AbstractFlexibleItem<UserItem.UserItemViewHolder> 
         @Nullable
         @BindView(R.id.checkedImageView)
         ImageView checkedImageView;
+        @Nullable
         @BindView(R.id.in_meeting)
         public EmojiTextView inMeetingStatus;
 

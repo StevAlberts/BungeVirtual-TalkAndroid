@@ -44,8 +44,8 @@ android {
 
         // mayor.minor.hotfix.increment (for increment: 01-50=Alpha / 51-89=RC / 90-99=stable)
         // xx   .xxx  .xx    .xx
-        versionCode 130010010
-        versionName "13.1.0 Alpha 10"
+        versionCode 1
+        versionName "1.0.0"
 
         flavorDimensions "default"
         renderscriptTargetApi 19
@@ -54,15 +54,15 @@ android {
         productFlavors {
             // used for f-droid
             generic {
-                applicationId 'com.nextcloud.talk2'
+                applicationId 'com.bungevirtual.talk'
                 dimension "default"
             }
             gplay {
-                applicationId 'com.nextcloud.talk2'
+                applicationId 'com.bungevirtual.talk'
                 dimension "default"
             }
             qa {
-                applicationId "com.nextcloud.talk2.qa"
+                applicationId "com.bungevirtual.talk.qa"
                 dimension "default"
                 versionCode 1
                 versionName "1"
@@ -187,6 +187,7 @@ dependencies {
     implementation "androidx.work:work-rxjava2:${workVersion}"
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.3.3'
+//    implementation 'androidx.wear.tiles:tiles-material:+'
     androidTestImplementation "androidx.work:work-testing:${workVersion}"
     implementation 'com.google.android:flexbox:2.0.1'
     implementation ('com.gitlab.bitfireAT:dav4jvm:2.1.3', {

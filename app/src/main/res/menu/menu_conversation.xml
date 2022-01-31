@@ -33,7 +33,20 @@
         android:id="@+id/conversation_video_call"
         android:orderInCategory="0"
         android:title="@string/join_meeting"
-        app:showAsAction="ifRoom" />
+        android:background="@color/colorPrimary"
+        app:showAsAction="ifRoom"
+        />
+
+
+<!--    <Button-->
+<!--        android:id="@+id/button"-->
+<!--        android:layout_width="160dp"-->
+<!--        android:layout_height="110dp"-->
+<!--        android:backgroundTint="@color/button_background_color"-->
+<!--        android:text="Click Me"-->
+<!--        android:textColor="@color/button_text_color"-->
+<!--        android:textSize="24sp"-->
+<!--        android:textStyle="bold" />-->
 
     <item
         android:id="@+id/conversation_info"

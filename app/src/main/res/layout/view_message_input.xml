@@ -52,18 +52,18 @@
             android:scaleType="centerCrop"
             android:contentDescription="@string/nc_add_attachment" />
 
-        <ImageButton
-            android:id="@+id/smileyButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:padding="12dp"
-            android:layout_below="@id/quotedChatMessageView"
-            android:layout_toEndOf="@id/attachmentButton"
-            android:background="@color/transparent"
-            android:src="@drawable/ic_insert_emoticon_black_24dp"
-            android:scaleType="centerCrop"
-            app:tint="?attr/colorControlNormal"
-            android:contentDescription="@string/nc_add_emojis" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/smileyButton"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:padding="12dp"-->
+<!--            android:layout_below="@id/quotedChatMessageView"-->
+<!--            android:layout_toEndOf="@id/attachmentButton"-->
+<!--            android:background="@color/transparent"-->
+<!--            android:src="@drawable/ic_insert_emoticon_black_24dp"-->
+<!--            android:scaleType="centerCrop"-->
+<!--            app:tint="?attr/colorControlNormal"-->
+<!--            android:contentDescription="@string/nc_add_emojis" />-->
 
         <com.nextcloud.talk.utils.ImageEmojiEditText
             android:id="@id/messageInput"
@@ -72,7 +72,7 @@
             android:layout_below="@+id/quotedChatMessageView"
             android:layout_centerHorizontal="true"
             android:layout_toStartOf="@id/messageSendButton"
-            android:layout_toEndOf="@id/smileyButton"
+            android:layout_toEndOf="@id/attachmentButton"
             android:imeOptions="actionDone"
             android:inputType="textAutoCorrect|textMultiLine|textCapSentences"
             android:lineSpacingMultiplier="1.2"
@@ -81,21 +81,21 @@
             android:layoutDirection="locale"
             tools:hint="@string/nc_hint_enter_a_message" />
 
-        <TextView
-            android:id="@+id/slideToCancelDescription"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/quotedChatMessageView"
-            android:layout_centerInParent="true"
-            android:layout_toStartOf="@id/recordAudioButton"
-            android:layout_toEndOf="@id/audioRecordDuration"
-            android:text="@string/nc_voice_message_slide_to_cancel"
-            android:textAlignment="viewStart"
-            android:textColor="@color/low_emphasis_text"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:visibility="gone"
-            tools:visibility="visible" />
+<!--        <TextView-->
+<!--            android:id="@+id/slideToCancelDescription"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_below="@id/quotedChatMessageView"-->
+<!--            android:layout_centerInParent="true"-->
+<!--            android:layout_toStartOf="@id/recordAudioButton"-->
+<!--            android:layout_toEndOf="@id/audioRecordDuration"-->
+<!--            android:text="@string/nc_voice_message_slide_to_cancel"-->
+<!--            android:textAlignment="viewStart"-->
+<!--            android:textColor="@color/low_emphasis_text"-->
+<!--            android:textSize="16sp"-->
+<!--            android:textStyle="bold"-->
+<!--            android:visibility="gone"-->
+<!--            tools:visibility="visible" />-->
 
         <ImageView
             android:id="@+id/microphoneEnabledInfoBackground"
@@ -113,33 +113,33 @@
          parent layout whenever the voice recording mode is enabled. parent layout has
          height=wrap_content because it must enlarge whenever user types a message with
           linebreaks. -->
-        <ImageView
-            android:id="@+id/microphoneEnabledInfo"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_below="@id/quotedChatMessageView"
-            android:scaleType="centerInside"
-            android:layout_alignParentStart="true"
-            android:src="@drawable/ic_baseline_mic_red_24"
-            android:contentDescription="@null"
-            android:visibility="gone"
-            tools:visibility="gone"/>
+<!--        <ImageView-->
+<!--            android:id="@+id/microphoneEnabledInfo"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:layout_below="@id/quotedChatMessageView"-->
+<!--            android:scaleType="centerInside"-->
+<!--            android:layout_alignParentStart="true"-->
+<!--            android:src="@drawable/ic_baseline_mic_red_24"-->
+<!--            android:contentDescription="@null"-->
+<!--            android:visibility="gone"-->
+<!--            tools:visibility="gone"/>-->
 
-        <Chronometer
-            android:id="@+id/audioRecordDuration"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/quotedChatMessageView"
-            android:layout_toEndOf="@id/microphoneEnabledInfo"
-            android:layout_centerVertical="true"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/low_emphasis_text"
-            android:paddingStart="5dp"
-            android:paddingEnd="5dp"
-            android:background="@color/bg_default"
-            android:visibility="gone"
-            tools:visibility="gone" />
+<!--        <Chronometer-->
+<!--            android:id="@+id/audioRecordDuration"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_below="@id/quotedChatMessageView"-->
+<!--            android:layout_toEndOf="@id/microphoneEnabledInfo"-->
+<!--            android:layout_centerVertical="true"-->
+<!--            android:textSize="16sp"-->
+<!--            android:textStyle="bold"-->
+<!--            android:textColor="@color/low_emphasis_text"-->
+<!--            android:paddingStart="5dp"-->
+<!--            android:paddingEnd="5dp"-->
+<!--            android:background="@color/bg_default"-->
+<!--            android:visibility="gone"-->
+<!--            tools:visibility="gone" />-->
 
         <ImageButton
             android:id="@id/messageSendButton"
@@ -152,15 +152,15 @@
             android:scaleType="centerInside"
             android:contentDescription="@string/nc_description_send_message_button" />
 
-        <ImageButton
-            android:id="@+id/recordAudioButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_below="@id/quotedChatMessageView"
-            android:layout_alignParentEnd="true"
-            android:background="@color/transparent"
-            android:src="@drawable/ic_baseline_mic_24"
-            android:contentDescription="@string/nc_description_record_voice" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/recordAudioButton"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:layout_below="@id/quotedChatMessageView"-->
+<!--            android:layout_alignParentEnd="true"-->
+<!--            android:background="@color/transparent"-->
+<!--            android:src="@drawable/ic_baseline_mic_24"-->
+<!--            android:contentDescription="@string/nc_description_record_voice" />-->
 
         <Space
             android:id="@id/attachmentButtonSpace"

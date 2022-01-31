@@ -366,11 +366,14 @@ public class CallActivity extends CallBaseActivity {
         basicInitialization();
         participantDisplayItems = new HashMap<>();
         initViews();
-        initKikaoControls();
+
         if (!isConnectionEstablished()) {
             initiateCall();
         }
         updateSelfVideoViewPosition();
+
+        // initialize kikao activities
+        initKikaoControls();
     }
 
     @Override
@@ -690,15 +693,16 @@ public class CallActivity extends CallBaseActivity {
         return (currentCallStatus.equals(CallStatus.JOINED) || currentCallStatus.equals(CallStatus.IN_CONVERSATION));
     }
 
+    // causing issues
     @AfterPermissionGranted(100)
     private void onPermissionsGranted() {
         if (EffortlessPermissions.hasPermissions(this, PERMISSIONS_CALL)) {
             if (!videoOn && !isVoiceOnlyCall) {
-                onCameraClick();
+//                onCameraClick();
             }
 
             if (!microphoneOn) {
-                onMicrophoneClick();
+//                onMicrophoneClick();
             }
 
             if (!isVoiceOnlyCall) {
@@ -732,7 +736,7 @@ public class CallActivity extends CallBaseActivity {
 
             if (EffortlessPermissions.hasPermissions(this, PERMISSIONS_CAMERA)) {
                 if (!videoOn) {
-                    onCameraClick();
+//                    onCameraClick();
                 }
             } else {
                 binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
@@ -743,7 +747,7 @@ public class CallActivity extends CallBaseActivity {
 
         if (EffortlessPermissions.hasPermissions(this, PERMISSIONS_MICROPHONE)) {
             if (!microphoneOn) {
-                onMicrophoneClick();
+//                onMicrophoneClick();
             }
         } else {
             binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
@@ -847,6 +851,8 @@ public class CallActivity extends CallBaseActivity {
     }
 
     public void onMicrophoneClick() {
+        Log.d(TAG, "onMicrophoneClick");
+
         if (EffortlessPermissions.hasPermissions(this, PERMISSIONS_MICROPHONE)) {
 
             if (!appPreferences.getPushToTalkIntroShown()) {
@@ -888,10 +894,12 @@ public class CallActivity extends CallBaseActivity {
                                                   MICROPHONE_PIP_REQUEST_UNMUTE);
                 }
 
+                Log.d(TAG, "onMicrophoneClick: " + microphoneOn);
                 toggleMedia(microphoneOn, false);
             } else {
                 binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_white_24px);
                 pulseAnimation.start();
+                Log.d(TAG, "onMicrophoneClick else: " + microphoneOn);
                 toggleMedia(true, false);
             }
 
@@ -941,7 +949,7 @@ public class CallActivity extends CallBaseActivity {
                     e.printStackTrace();
                 }
 
-                requestToSpeakStartLoading();
+//                requestToSpeakStartLoading();
 
 
                 Log.d(TAG,"Calling apiservice");
@@ -2730,17 +2738,15 @@ public class CallActivity extends CallBaseActivity {
     }
 
     //kikao stuff
-
+        // TODO: Work with this to separate meetings
     private void initKikaoControls(){
         //save session
-
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putString(KikaoUtilitiesConstants.ACTIVE_SESSION_ID, roomToken);
-        editor.apply();
+//        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+//        SharedPreferences.Editor editor = sharedPref.edit();
+//        editor.putString(KikaoUtilitiesConstants.ACTIVE_SESSION_ID, roomToken);
+//        editor.apply();
 
         //show controls according to room type
-
         Log.d(TAG, "The conversation type type is: "+conversationType);
         if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
             showStaffControls();
@@ -2751,11 +2757,11 @@ public class CallActivity extends CallBaseActivity {
             showCommitteeControlsDisabled();
             updateStuff();
         }else{
-            showStaffControls();
+//            showStaffControls();
         }
 
         binding.requestToSpeakButton.setOnClickListener(l ->{
-            Log.d(TAG, "Request to speak clicked");
+            Log.d(TAG, "Request to speak clicked..");
 
             if (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
                 cancelRequestPermissionToSpeakNetworkCall();
@@ -2765,7 +2771,7 @@ public class CallActivity extends CallBaseActivity {
         });
 
         binding.requestToInterveneButton.setOnClickListener(l ->{
-            Log.d(TAG, "Request to intervene clicked");
+            Log.d(TAG, "Request to intervene clicked..");
 
             if (binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
                 cancelRequestPermissionToInterveneNetworkCall();
@@ -2848,7 +2854,7 @@ public class CallActivity extends CallBaseActivity {
         requestToSpeakStartLoading();
 
 
-        Log.d(TAG,"Calling apiservice");
+        Log.d(TAG,"Calling api service");
         apiService.requestToSpeak(credentials, RequestBody.create(MediaType.parse("application/json"), json.toString()))
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -3048,9 +3054,12 @@ public class CallActivity extends CallBaseActivity {
                 public void onNext(@io.reactivex.annotations.NonNull List<RequestToActionGenericResult> lists) {
                     RequestToActionGenericResult requestToActionGenericResult = new RequestToActionGenericResult();
 
+                    Log.d(TAG, "Listening to requests..........");
+
                     if (lists.size() > 0) {
 
                         for (RequestToActionGenericResult item : lists) {
+                            Log.d(TAG, "Looping lists.........: "+lists.size());
                             if (item.getUserId().equalsIgnoreCase(conversationUser.getUserId())) {
                                 requestToActionGenericResult = item;
 
@@ -3181,6 +3190,10 @@ public class CallActivity extends CallBaseActivity {
         if (action.equals(KikaoUtilitiesConstants.ACTION_NONE)){
 
         }else if(action.equals(KikaoUtilitiesConstants.ACTION_PAUSE_USER)){
+            // to disable stream
+//            onMicrophoneClick();
+//            onCameraClick();
+
             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                 pauseTimer(true);
             }
@@ -3196,15 +3209,20 @@ public class CallActivity extends CallBaseActivity {
             }
         }else if(action.equals(KikaoUtilitiesConstants.ACTION_CANCEL_USER)){
             if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
+                // to disable stream
+//                onMicrophoneClick();
+//                onCameraClick();
                 showCommitteeControlsDisabled();
             } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                // to disable stream
+//                onMicrophoneClick();
+//                onCameraClick();
                 showPlenaryControlsDisabled();
             }
         }
     }
 
     private void showStaffControls(){
-
         //make raise hand visible
         binding.callControlRaiseHand.setVisibility(View.VISIBLE);
     }
@@ -3230,16 +3248,6 @@ public class CallActivity extends CallBaseActivity {
         if(countDownTimer!=null){
             countDownTimer.cancel();
         }
-
-        //mute mic and camera
-        audioOn = false;
-        videoOn = false;
-
-        //disable audio
-        toggleMedia(audioOn, false);
-        //disable video
-        toggleMedia(videoOn, true);
-
 
     }
 

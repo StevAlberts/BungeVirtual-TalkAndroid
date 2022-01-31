@@ -703,101 +703,101 @@ class ChatController(args: Bundle) :
         var voiceRecordStartTime = 0L
         var voiceRecordEndTime = 0L
 
-        binding.messageInputView.recordAudioButton.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                view.performClick()
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        if (!isRecordAudioPermissionGranted()) {
-                            requestRecordAudioPermissions()
-                            return true
-                        }
-                        if (!UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
-                            UploadAndShareFilesWorker.requestStoragePermission(this@ChatController)
-                            return true
-                        }
-
-                        voiceRecordStartTime = System.currentTimeMillis()
-
-                        setVoiceRecordFileName()
-                        startAudioRecording(currentVoiceRecordFile)
-                        downX = event.x
-                        showRecordAudioUi(true)
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        Log.d(TAG, "ACTION_CANCEL. same as for UP")
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-
-                        stopAndDiscardAudioRecording()
-                        showRecordAudioUi(false)
-                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        Log.d(TAG, "ACTION_UP. stop recording??")
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-                        showRecordAudioUi(false)
-
-                        voiceRecordEndTime = System.currentTimeMillis()
-                        val voiceRecordDuration = voiceRecordEndTime - voiceRecordStartTime
-                        if (voiceRecordDuration < MINIMUM_VOICE_RECORD_DURATION) {
-                            Log.d(TAG, "voiceRecordDuration: " + voiceRecordDuration)
-                            Toast.makeText(
-                                context,
-                                context!!.getString(R.string.nc_voice_message_hold_to_record_info),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            stopAndDiscardAudioRecording()
-                            return true
-                        } else {
-                            voiceRecordStartTime = 0L
-                            voiceRecordEndTime = 0L
-                            stopAndSendAudioRecording()
-                        }
-
-                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        Log.d(TAG, "ACTION_MOVE.")
-
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-
-                        showRecordAudioUi(true)
-
-                        if (sliderInitX == 0.0F) {
-                            sliderInitX = binding.messageInputView.slideToCancelDescription.x
-                        }
-
-                        val movedX: Float = event.x
-                        deltaX = movedX - downX
-
-                        // only allow slide to left
-                        if (binding.messageInputView.slideToCancelDescription.x > sliderInitX) {
-                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                        }
-
-                        if (binding.messageInputView.slideToCancelDescription.x < VOICE_RECORD_CANCEL_SLIDER_X) {
-                            Log.d(TAG, "stopping recording because slider was moved to left")
-                            stopAndDiscardAudioRecording()
-                            showRecordAudioUi(false)
-                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                            return true
-                        } else {
-                            binding.messageInputView.slideToCancelDescription.x = binding.messageInputView
-                                .slideToCancelDescription.x + deltaX
-                            downX = movedX
-                        }
-                    }
-                }
-
-                return v?.onTouchEvent(event) ?: true
-            }
-        })
+//        binding.messageInputView.recordAudioButton.setOnTouchListener(object : View.OnTouchListener {
+//            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+//                view.performClick()
+//                when (event?.action) {
+//                    MotionEvent.ACTION_DOWN -> {
+//                        if (!isRecordAudioPermissionGranted()) {
+//                            requestRecordAudioPermissions()
+//                            return true
+//                        }
+//                        if (!UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
+//                            UploadAndShareFilesWorker.requestStoragePermission(this@ChatController)
+//                            return true
+//                        }
+//
+//                        voiceRecordStartTime = System.currentTimeMillis()
+//
+//                        setVoiceRecordFileName()
+//                        startAudioRecording(currentVoiceRecordFile)
+//                        downX = event.x
+//                        showRecordAudioUi(true)
+//                    }
+//                    MotionEvent.ACTION_CANCEL -> {
+//                        Log.d(TAG, "ACTION_CANCEL. same as for UP")
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//
+//                        stopAndDiscardAudioRecording()
+//                        showRecordAudioUi(false)
+//                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                    }
+//                    MotionEvent.ACTION_UP -> {
+//                        Log.d(TAG, "ACTION_UP. stop recording??")
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//                        showRecordAudioUi(false)
+//
+//                        voiceRecordEndTime = System.currentTimeMillis()
+//                        val voiceRecordDuration = voiceRecordEndTime - voiceRecordStartTime
+//                        if (voiceRecordDuration < MINIMUM_VOICE_RECORD_DURATION) {
+//                            Log.d(TAG, "voiceRecordDuration: " + voiceRecordDuration)
+//                            Toast.makeText(
+//                                context,
+//                                context!!.getString(R.string.nc_voice_message_hold_to_record_info),
+//                                Toast.LENGTH_SHORT
+//                            ).show()
+//                            stopAndDiscardAudioRecording()
+//                            return true
+//                        } else {
+//                            voiceRecordStartTime = 0L
+//                            voiceRecordEndTime = 0L
+//                            stopAndSendAudioRecording()
+//                        }
+//
+//                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                    }
+//                    MotionEvent.ACTION_MOVE -> {
+//                        Log.d(TAG, "ACTION_MOVE.")
+//
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//
+//                        showRecordAudioUi(true)
+//
+//                        if (sliderInitX == 0.0F) {
+//                            sliderInitX = binding.messageInputView.slideToCancelDescription.x
+//                        }
+//
+//                        val movedX: Float = event.x
+//                        deltaX = movedX - downX
+//
+//                        // only allow slide to left
+//                        if (binding.messageInputView.slideToCancelDescription.x > sliderInitX) {
+//                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                        }
+//
+//                        if (binding.messageInputView.slideToCancelDescription.x < VOICE_RECORD_CANCEL_SLIDER_X) {
+//                            Log.d(TAG, "stopping recording because slider was moved to left")
+//                            stopAndDiscardAudioRecording()
+//                            showRecordAudioUi(false)
+//                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                            return true
+//                        } else {
+//                            binding.messageInputView.slideToCancelDescription.x = binding.messageInputView
+//                                .slideToCancelDescription.x + deltaX
+//                            downX = movedX
+//                        }
+//                    }
+//                }
+//
+//                return v?.onTouchEvent(event) ?: true
+//            }
+//        })
 
         binding.messageInputView.inputEditText?.setText(sharedText)
         binding.messageInputView.setAttachmentsListener {
@@ -987,28 +987,28 @@ class ChatController(args: Bundle) :
         currentVoiceRecordFile = "${context!!.cacheDir.absolutePath}/$fileName"
     }
 
-    private fun showRecordAudioUi(show: Boolean) {
-        if (show) {
-            binding.messageInputView.microphoneEnabledInfo.visibility = View.VISIBLE
-            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.VISIBLE
-            binding.messageInputView.audioRecordDuration.visibility = View.VISIBLE
-            binding.messageInputView.slideToCancelDescription.visibility = View.VISIBLE
-            binding.messageInputView.attachmentButton.visibility = View.GONE
-            binding.messageInputView.smileyButton.visibility = View.GONE
-            binding.messageInputView.messageInput.visibility = View.GONE
-            binding.messageInputView.messageInput.hint = ""
-        } else {
-            binding.messageInputView.microphoneEnabledInfo.visibility = View.GONE
-            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.GONE
-            binding.messageInputView.audioRecordDuration.visibility = View.GONE
-            binding.messageInputView.slideToCancelDescription.visibility = View.GONE
-            binding.messageInputView.attachmentButton.visibility = View.VISIBLE
-            binding.messageInputView.smileyButton.visibility = View.VISIBLE
-            binding.messageInputView.messageInput.visibility = View.VISIBLE
-            binding.messageInputView.messageInput.hint =
-                context?.resources?.getString(R.string.nc_hint_enter_a_message)
-        }
-    }
+//    private fun showRecordAudioUi(show: Boolean) {
+//        if (show) {
+//            binding.messageInputView.microphoneEnabledInfo.visibility = View.VISIBLE
+//            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.VISIBLE
+//            binding.messageInputView.audioRecordDuration.visibility = View.VISIBLE
+//            binding.messageInputView.slideToCancelDescription.visibility = View.VISIBLE
+//            binding.messageInputView.attachmentButton.visibility = View.GONE
+//            binding.messageInputView.smileyButton.visibility = View.GONE
+//            binding.messageInputView.messageInput.visibility = View.GONE
+//            binding.messageInputView.messageInput.hint = ""
+//        } else {
+//            binding.messageInputView.microphoneEnabledInfo.visibility = View.GONE
+//            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.GONE
+//            binding.messageInputView.audioRecordDuration.visibility = View.GONE
+//            binding.messageInputView.slideToCancelDescription.visibility = View.GONE
+//            binding.messageInputView.attachmentButton.visibility = View.VISIBLE
+//            binding.messageInputView.smileyButton.visibility = View.VISIBLE
+//            binding.messageInputView.messageInput.visibility = View.VISIBLE
+//            binding.messageInputView.messageInput.hint =
+//                context?.resources?.getString(R.string.nc_hint_enter_a_message)
+//        }
+//    }
 
     private fun isRecordAudioPermissionGranted(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -1032,76 +1032,76 @@ class ChatController(args: Bundle) :
         }
     }
 
-    private fun startAudioRecording(file: String) {
-        binding.messageInputView.audioRecordDuration.base = SystemClock.elapsedRealtime()
-        binding.messageInputView.audioRecordDuration.start()
+//    private fun startAudioRecording(file: String) {
+//        binding.messageInputView.audioRecordDuration.base = SystemClock.elapsedRealtime()
+//        binding.messageInputView.audioRecordDuration.start()
+//
+//        val animation: Animation = AlphaAnimation(1.0f, 0.0f)
+//        animation.duration = 750
+//        animation.interpolator = LinearInterpolator()
+//        animation.repeatCount = Animation.INFINITE
+//        animation.repeatMode = Animation.REVERSE
+//        binding.messageInputView.microphoneEnabledInfo.startAnimation(animation)
+//
+//        recorder = MediaRecorder().apply {
+//            setAudioSource(MediaRecorder.AudioSource.MIC)
+//            setOutputFile(file)
+//            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+//            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+//
+//            try {
+//                prepare()
+//            } catch (e: IOException) {
+//                Log.e(TAG, "prepare for audio recording failed")
+//            }
+//
+//            try {
+//                start()
+//                isVoiceRecordingInProgress = true
+//            } catch (e: IllegalStateException) {
+//                Log.e(TAG, "start for audio recording failed")
+//            }
+//
+//            vibrate()
+//        }
+//    }
 
-        val animation: Animation = AlphaAnimation(1.0f, 0.0f)
-        animation.duration = 750
-        animation.interpolator = LinearInterpolator()
-        animation.repeatCount = Animation.INFINITE
-        animation.repeatMode = Animation.REVERSE
-        binding.messageInputView.microphoneEnabledInfo.startAnimation(animation)
+//    private fun stopAndSendAudioRecording() {
+//        stopAudioRecording()
+//        val uri = Uri.fromFile(File(currentVoiceRecordFile))
+//        uploadFiles(mutableListOf(uri.toString()), true)
+//    }
 
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFile(file)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-
-            try {
-                prepare()
-            } catch (e: IOException) {
-                Log.e(TAG, "prepare for audio recording failed")
-            }
-
-            try {
-                start()
-                isVoiceRecordingInProgress = true
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "start for audio recording failed")
-            }
-
-            vibrate()
-        }
-    }
-
-    private fun stopAndSendAudioRecording() {
-        stopAudioRecording()
-        val uri = Uri.fromFile(File(currentVoiceRecordFile))
-        uploadFiles(mutableListOf(uri.toString()), true)
-    }
-
-    private fun stopAndDiscardAudioRecording() {
-        stopAudioRecording()
-
-        val cachedFile = File(currentVoiceRecordFile)
-        cachedFile.delete()
-    }
+//    private fun stopAndDiscardAudioRecording() {
+//        stopAudioRecording()
+//
+//        val cachedFile = File(currentVoiceRecordFile)
+//        cachedFile.delete()
+//    }
 
     @Suppress("Detekt.TooGenericExceptionCaught")
-    private fun stopAudioRecording() {
-        binding.messageInputView.audioRecordDuration.stop()
-        binding.messageInputView.microphoneEnabledInfo.clearAnimation()
-
-        if (isVoiceRecordingInProgress) {
-            recorder?.apply {
-                try {
-                    stop()
-                    release()
-                    isVoiceRecordingInProgress = false
-                    Log.d(TAG, "stopped recorder. isVoiceRecordingInProgress = false")
-                } catch (e: RuntimeException) {
-                    Log.w(TAG, "error while stopping recorder!")
-                }
-
-                vibrate()
-            }
-            recorder = null
-        } else {
-            Log.e(TAG, "tried to stop audio recorder but it was not recording")
-        }
-    }
+//    private fun stopAudioRecording() {
+////        binding.messageInputView.audioRecordDuration.stop()
+////        binding.messageInputView.microphoneEnabledInfo.clearAnimation()
+//
+//        if (isVoiceRecordingInProgress) {
+//            recorder?.apply {
+//                try {
+//                    stop()
+//                    release()
+//                    isVoiceRecordingInProgress = false
+//                    Log.d(TAG, "stopped recorder. isVoiceRecordingInProgress = false")
+//                } catch (e: RuntimeException) {
+//                    Log.w(TAG, "error while stopping recorder!")
+//                }
+//
+//                vibrate()
+//            }
+//            recorder = null
+//        } else {
+//            Log.e(TAG, "tried to stop audio recorder but it was not recording")
+//        }
+//    }
 
     fun vibrate() {
         val vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -2621,10 +2621,10 @@ class ChatController(args: Bundle) :
     private fun showMicrophoneButton(show: Boolean) {
         if (show && CapabilitiesUtil.hasSpreedFeatureCapability(conversationUser, "voice-message-sharing")) {
             binding.messageInputView.messageSendButton.visibility = View.GONE
-            binding.messageInputView.recordAudioButton.visibility = View.VISIBLE
+//            binding.messageInputView.recordAudioButton.visibility = View.VISIBLE
         } else {
             binding.messageInputView.messageSendButton.visibility = View.VISIBLE
-            binding.messageInputView.recordAudioButton.visibility = View.GONE
+//            binding.messageInputView.recordAudioButton.visibility = View.GONE
         }
     }
 

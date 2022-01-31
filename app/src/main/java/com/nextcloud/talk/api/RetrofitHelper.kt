@@ -17,10 +17,12 @@ class RetrofitHelper(private val context: Context) {
 
     private val TAG_API_SERVICE  = RetrofitHelper::class.simpleName
 
+    // TODO: Make dynamic url here for .ml
     // init the api service
     fun getApiService(): ApiService {
         return Retrofit.Builder()
-            .baseUrl(context.getString(R.string.kikaoutils_api_base_url))
+//        context.getString(R.string.kikaoutils_api_base_url)
+            .baseUrl("https://bungevirtualbackup.ml/")
             .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .addConverterFactory(GsonConverterFactory.create())
             .client(okHttpClient())

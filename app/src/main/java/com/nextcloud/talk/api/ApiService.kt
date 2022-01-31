@@ -15,29 +15,30 @@ import retrofit2.http.Url
 
 interface ApiService {
 
-    @POST("apps/kikaoutilities/api/0.1/activities")
+//    @POST("apps/kikaoutilities/api/0.1/activities")
+    @POST("index.php/apps/kikaoutilities/api/0.1/activities")
     fun requestToSpeak(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
 
-    @PUT("apps/kikaoutilities/api/0.1/activities/{id}")
+    @PUT("index.php/apps/kikaoutilities/api/0.1/activities/{id}")
     fun cancelRequestToSpeak(@Header("Authorization") authorization: String?,  @Path("id") id:
     Int, @Query("token") token:String, @Body body: RequestBody?):
         Observable<RequestToActionGenericResult?>?
 
-    @POST("apps/kikaoutilities/api/0.1/activities")
+    @POST("index.php/apps/kikaoutilities/api/0.1/activities")
     fun requestToIntervene(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
 
-    @PUT("apps/kikaoutilities/api/0.1/activities/{id}")
+    @PUT("index.php/apps/kikaoutilities/api/0.1/activities/{id}")
     fun cancelRequestToIntervene(@Header("Authorization") authorization: String?,  @Path("id") id:
     Int, @Query("token") token:String, @Body body: RequestBody?):
         Observable<RequestToActionGenericResult?>?
 
-    @GET("apps/kikaoutilities/api/0.1/activities")
+    @GET("index.php/apps/kikaoutilities/api/0.1/activities")
     fun getSpeakerActionResponses(@Header("Authorization") authorization: String?,  @Query("token") token:
     String,):
         Observable<List<RequestToActionGenericResult>?>?
 
 
-    @PUT("apps/kikaoutilities/api/0.1/activities/{id}")
+    @PUT("index.php/apps/kikaoutilities/api/0.1/activities/{id}")
     fun userUnMuted(@Header("Authorization") authorization: String?, @Path("id") id:
     Int, @Query("token") token:String, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
 }
