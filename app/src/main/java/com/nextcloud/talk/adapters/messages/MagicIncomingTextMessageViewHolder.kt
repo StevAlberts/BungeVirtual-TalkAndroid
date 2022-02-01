@@ -90,7 +90,7 @@ class MagicIncomingTextMessageViewHolder(itemView: View, payload: Any) : Message
                 if (context != null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         val layers = arrayOfNulls<Drawable>(2)
-                        layers[0] = ContextCompat.getDrawable(context!!, R.drawable.ic_launcher_background)
+                        layers[0] = ContextCompat.getDrawable(context!!, R.drawable.ic_launcher_foreground)
                         layers[1] = ContextCompat.getDrawable(context!!, R.drawable.ic_launcher_foreground)
                         val layerDrawable = LayerDrawable(layers)
                         binding.messageUserAvatar.setImageDrawable(DisplayUtils.getRoundedDrawable(layerDrawable))

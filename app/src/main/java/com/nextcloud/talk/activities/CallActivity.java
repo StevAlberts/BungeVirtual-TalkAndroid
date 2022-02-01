@@ -3190,10 +3190,14 @@ public class CallActivity extends CallBaseActivity {
         if (action.equals(KikaoUtilitiesConstants.ACTION_NONE)){
 
         }else if(action.equals(KikaoUtilitiesConstants.ACTION_PAUSE_USER)){
-            // to disable stream
-//            onMicrophoneClick();
-//            onCameraClick();
+            // to disable controls when user is paused
+            if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
+                showCommitteeControlsDisabled();
+            } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                showPlenaryControlsDisabled();
+            }
 
+            // pause timer during plenary_call
             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                 pauseTimer(true);
             }
@@ -3205,18 +3209,16 @@ public class CallActivity extends CallBaseActivity {
                     showCommitteeControlsEnabled();
                 } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                     showPlenaryControlsEnabled();
+                    // unpause timer during plenary_call
+                    if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                        pauseTimer(false);
+                    }
                 }
             }
         }else if(action.equals(KikaoUtilitiesConstants.ACTION_CANCEL_USER)){
             if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
-                // to disable stream
-//                onMicrophoneClick();
-//                onCameraClick();
                 showCommitteeControlsDisabled();
             } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                // to disable stream
-//                onMicrophoneClick();
-//                onCameraClick();
                 showPlenaryControlsDisabled();
             }
         }
@@ -3229,6 +3231,15 @@ public class CallActivity extends CallBaseActivity {
 
     private void showCommitteeControlsDisabled(){
         Log.d(TAG, "Show commitee controls");
+        //mute mic and camera
+        audioOn = false;
+        videoOn = false;
+
+        //disable audioOn = false
+        toggleMedia(false, false);
+        //disable video
+        toggleMedia(videoOn, true);
+
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
@@ -3253,6 +3264,15 @@ public class CallActivity extends CallBaseActivity {
 
     private void showPlenaryControlsDisabled(){
         Log.d(TAG, "Show plenary controls");
+        //mute mic and camera
+        audioOn = false;
+        videoOn = false;
+
+        //disable audioOn = false
+        toggleMedia(false, false);
+        //disable video
+        toggleMedia(videoOn, true);
+
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
@@ -3275,14 +3295,14 @@ public class CallActivity extends CallBaseActivity {
             countDownTimer.cancel();
         }
 
-        //mute mic and camera
-        audioOn = false;
-        videoOn = false;
-
-        //disable audio
-        toggleMedia(audioOn, false);
-        //disable video
-        toggleMedia(videoOn, true);
+//        //mute mic and camera
+//        audioOn = false;
+//        videoOn = false;
+//
+//        //disable audio
+//        toggleMedia(audioOn, false);
+//        //disable video
+//        toggleMedia(videoOn, true);
 
 
     }
@@ -3428,7 +3448,7 @@ public class CallActivity extends CallBaseActivity {
             public void run() {
                 updateStuffNetworkCall();
             }
-        }, 0, 10000);//put here time 1000 milliseconds=1 second
+        }, 0, 1000);//put here time 1000 milliseconds=1 second
 
     }
 
