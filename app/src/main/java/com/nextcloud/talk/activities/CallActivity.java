@@ -109,6 +109,7 @@ import com.nextcloud.talk.webrtc.MagicWebSocketInstance;
 import com.nextcloud.talk.webrtc.WebSocketConnectionHelper;
 import com.wooplr.spotlight.SpotlightView;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -140,6 +141,8 @@ import org.webrtc.VideoTrack;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -155,7 +158,6 @@ import javax.inject.Inject;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
@@ -202,7 +204,9 @@ public class CallActivity extends CallBaseActivity {
 
     private Boolean speakerhasUnmuted = false;
 
-    private Boolean speakerIsApproved = false;
+    private Boolean interveneApproved = false;
+
+    private Boolean speakerApproved = false;
 
     private CountDownTimer countDownTimer;
 
@@ -305,6 +309,18 @@ public class CallActivity extends CallBaseActivity {
 
     private CallActivityBinding binding;
 
+//    private JSONObject speakJson = new JSONObject();
+//
+//    private JSONObject interveneJson = new JSONObject();
+
+    private RequestToActionGenericResult speakResult;
+
+    private RequestToActionGenericResult interveneResult;
+
+//    private List<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
+    private ArrayList<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
+
+
     @Parcel
     public enum CallStatus {
         CONNECTING, CALLING_TIMEOUT, JOINED, IN_CONVERSATION, RECONNECTING, OFFLINE, LEAVING, PUBLISHER_FAILED
@@ -322,7 +338,11 @@ public class CallActivity extends CallBaseActivity {
         binding = CallActivityBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        apiService = retrofitHelper.getApiService();
+
+//        apiService = retrofitHelper.getApiService();
+//        Log.d(TAG, "onCreate... apiService: " + apiService.toString());
+//        Log.d(TAG, "onCreate... baseUrl: " + baseUrl);
+
 
         hideNavigationIfNoPipAvailable();
 
@@ -336,6 +356,7 @@ public class CallActivity extends CallBaseActivity {
         conversationType = (Conversation.ConversationType) extras.get(BundleKeys.INSTANCE.getKEY_CONVERSATION_TYPE());
 
 
+
         if (extras.containsKey(BundleKeys.INSTANCE.getKEY_FROM_NOTIFICATION_START_CALL())) {
             isIncomingCallFromNotification = extras.getBoolean(BundleKeys.INSTANCE.getKEY_FROM_NOTIFICATION_START_CALL());
         }
@@ -346,6 +367,8 @@ public class CallActivity extends CallBaseActivity {
         if (TextUtils.isEmpty(baseUrl)) {
             baseUrl = conversationUser.getBaseUrl();
         }
+
+        apiService = retrofitHelper.getApiService(baseUrl);
 
         powerManagerUtils = new PowerManagerUtils();
 
@@ -922,18 +945,21 @@ public class CallActivity extends CallBaseActivity {
         }
 
         Log.d(TAG, "We are here....");
-        if (allocatedSpeakTime >0 && (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)) || binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)))){
-            speakerhasUnmuted = true;
-            Log.d(TAG, "We are not here...."+speakTimerStarted);
-            if (!speakTimerStarted){
+//        if (allocatedSpeakTime >0 && (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)) || binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)))){
+//            speakerhasUnmuted = true;
+//            Log.d(TAG, "We are not here...."+speakTimerStarted);
+//            if (!speakTimerStarted){
 
                 //start timer if plenary
-                speakTimerStarted = true;
+//                speakTimerStarted = true;
                 if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                     startTimer();
                 }
-                //make api request that speaker has started speaking
 
+                // start all timers
+//                startTimer();
+
+                //make api request that speaker has started speaking
 
                 JSONObject json = new JSONObject();
                 try {
@@ -956,45 +982,90 @@ public class CallActivity extends CallBaseActivity {
 
 
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                int activeSession = -99;
+//                int activeSession = -99;
+//
+//                if (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
+//                    activeSession = sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0);
+//
+//                }else if (binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
+//                    activeSession = sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+//                                                      0);
+//                }
 
-                if (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
-                    activeSession = sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0);
+                if (speakerApproved) {
+                    // log that speaker has started speaking
+                    Log.d(TAG, "Calling start for speak: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                        0));
+                    apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                            0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
+                            json.toString()))
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Observer<RequestToActionGenericResult>() {
+                            @Override
+                            public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                                // unused atm
+                            }
 
-                }else if (binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
-                    activeSession = sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
-                                                      0);
+                            @Override
+                            public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                                // log started speak
+                                Log.d(TAG, "Started speak timer");
+                            }
+
+                            @Override
+                            public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                // unused atm
+                            }
+                        });
+
                 }
 
-                apiService.userUnMuted(credentials, activeSession , roomToken, RequestBody.create(MediaType.parse("application/json"),
-                                                                                                  json.toString()))
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Observer<RequestToActionGenericResult>() {
-                        @Override
-                        public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
-                            // unused atm
-                        }
+                if (interveneApproved){
+                    // log that speaker has started intervene
+                    Log.d(TAG, "Calling start for intervene: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                        0));
+                    apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                            0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
+                            json.toString()))
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Observer<RequestToActionGenericResult>() {
+                            @Override
+                            public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                                // unused atm
+                            }
 
-                        @Override
-                        public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                            @Override
+                            public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                                Log.d(TAG, "Started intervene timer:");
 
-                        }
+                            }
 
-                        @Override
-                        public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                            @Override
+                            public void onError(@io.reactivex.annotations.NonNull Throwable e) {
 
-                        }
+                            }
 
-                        @Override
-                        public void onComplete() {
-                            // unused atm
-                        }
-                    });
+                            @Override
+                            public void onComplete() {
+                                // unused atm
+                            }
+                        });
+                }
 
-            }
 
-        }
+
+
+
+//            }
+
+//        }
 
     }
 
@@ -2606,7 +2677,6 @@ public class CallActivity extends CallBaseActivity {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
@@ -2756,16 +2826,17 @@ public class CallActivity extends CallBaseActivity {
         }else if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)){
             showCommitteeControlsDisabled();
             updateStuff();
-        }else{
-//            showStaffControls();
         }
 
+
         binding.requestToSpeakButton.setOnClickListener(l ->{
-            Log.d(TAG, "Request to speak clicked..");
 
             if (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
-                cancelRequestPermissionToSpeakNetworkCall();
+                Log.d(TAG, "Cancel Request to speak clicked..");
+                //cancel request to speak
+                handleCancelSpeak();
             }else{
+                Log.d(TAG, "Request to speak clicked..");
                 requestPermissionToSpeakNetworkCall();
             }
         });
@@ -2774,7 +2845,7 @@ public class CallActivity extends CallBaseActivity {
             Log.d(TAG, "Request to intervene clicked..");
 
             if (binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
-                cancelRequestPermissionToInterveneNetworkCall();
+                handleCancelIntervene();
             }else{
                 requestPermissionToInterveneNetworkCall();
             }
@@ -2810,29 +2881,29 @@ public class CallActivity extends CallBaseActivity {
         });
     }
 
-    private void requestToSpeakStartLoading(){
-
-    }
-
-    private void requestToInterveneStartLoading(){
-
-    }
-
-    private void showRequestToSpeakButtonSuccess() {
-
-    }
-
-    private void showRequestToSpeakLoadingError() {
-
-    }
-
-    private void showRequestToInterveneButtonSuccess() {
-
-    }
-
-    private void showRequestToInterveneLoadingError() {
-
-    }
+//    private void requestToSpeakStartLoading(){
+//
+//    }
+//
+//    private void requestToInterveneStartLoading(){
+//
+//    }
+//
+//    private void showRequestToSpeakButtonSuccess() {
+//
+//    }
+//
+//    private void showRequestToSpeakLoadingError() {
+//
+//    }
+//
+//    private void showRequestToInterveneButtonSuccess() {
+//
+//    }
+//
+//    private void showRequestToInterveneLoadingError() {
+//
+//    }
 
     private void requestPermissionToSpeakNetworkCall() {
 
@@ -2851,7 +2922,7 @@ public class CallActivity extends CallBaseActivity {
             e.printStackTrace();
         }
 
-        requestToSpeakStartLoading();
+//        requestToSpeakStartLoading();
 
 
         Log.d(TAG,"Calling api service");
@@ -2866,7 +2937,20 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
-                    showRequestToSpeakButtonSuccess();
+//                    showRequestToSpeakButtonSuccess();
+
+                    speakResult = requestToActionGenericResult;
+
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                        speakResult.getId());
+                    editor.apply();
+
+                    // log speak request
+                    Log.d(TAG, "Request to speakResult.....: " + speakResult.toString());
+                    Log.d(TAG, "Request to speakResult.....: " + speakResult.getId());
+
                     binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
                     binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
                                                                                    R.color.kikao_danger));
@@ -2874,7 +2958,7 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                    showRequestToSpeakLoadingError();
+//                    showRequestToSpeakLoadingError();
                 }
 
                 @Override
@@ -2900,7 +2984,7 @@ public class CallActivity extends CallBaseActivity {
             e.printStackTrace();
         }
 
-        requestToInterveneStartLoading();
+//        requestToInterveneStartLoading();
 
         Log.d(TAG,"Calling apiservice");
         apiService.requestToIntervene(credentials, RequestBody.create(MediaType.parse("application/json"), json.toString()))
@@ -2917,12 +3001,21 @@ public class CallActivity extends CallBaseActivity {
                     binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
                     binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
                                                                                        R.color.kikao_danger));
-                    showRequestToInterveneButtonSuccess();
+//                    showRequestToInterveneButtonSuccess();
+
+                    // store requestToActionGenericResult to shared preferences
+                    interveneResult = requestToActionGenericResult;
+
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                        interveneResult.getId());
+                    editor.apply();
                 }
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                    showRequestToInterveneLoadingError();
+//                    showRequestToInterveneLoadingError();
                 }
 
                 @Override
@@ -2951,38 +3044,46 @@ public class CallActivity extends CallBaseActivity {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-        requestToSpeakStartLoading();
+//        requestToSpeakStartLoading();
 
-        Log.d(TAG,"Calling apiservice");
-        apiService.cancelRequestToSpeak(credentials,sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0), roomToken, RequestBody.create(MediaType.parse(
-            "application/json"), json.toString()))
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(new Observer<RequestToActionGenericResult>() {
-                @Override
-                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
-                    // unused atm
-                }
 
-                @Override
-                public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
-                    showRequestToSpeakButtonSuccess();
+            Log.d(TAG, "Calling cancelRequestPermissionToSpeakNetworkCall...::" + sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0));
+       
 
-                    binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                    binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                   R.color.colorPrimary));
-                }
+            apiService.cancelRequestToSpeak(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0), roomToken, RequestBody.create(MediaType.parse(
+                    "application/json"), json.toString()))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<RequestToActionGenericResult>() {
+                    @Override
+                    public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                        // unused atm
+                    }
 
-                @Override
-                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                    showRequestToSpeakLoadingError();
-                }
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                        Log.d(TAG, "cancelled....RequestPermissionToSpeakNetworkCall");
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.remove(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID);
+                        editor.apply();
+//                    showRequestToSpeakButtonSuccess();
+//                    binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
+//                    binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                                                                                   R.color.colorPrimary));
+                    }
 
-                @Override
-                public void onComplete() {
-                    // unused atm
-                }
-            });
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+//                    showRequestToSpeakLoadingError();
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        // unused atm
+                    }
+                });
+        
     }
 
     private void cancelRequestPermissionToInterveneNetworkCall() {
@@ -3002,7 +3103,7 @@ public class CallActivity extends CallBaseActivity {
             e.printStackTrace();
         }
 
-        requestToInterveneStartLoading();
+//        requestToInterveneStartLoading();
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
@@ -3021,15 +3122,19 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
-                    binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                    binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                       R.color.colorPrimary));
-                    showRequestToInterveneButtonSuccess();
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.remove(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID);
+                    editor.apply();
+//                    binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
+//                    binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                                                                                       R.color.colorPrimary));
+//                    showRequestToInterveneButtonSuccess();
                 }
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-                    showRequestToInterveneLoadingError();
+//                    showRequestToInterveneLoadingError();
                 }
 
                 @Override
@@ -3040,8 +3145,7 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void updateStuffNetworkCall(){
-
-        apiService.getSpeakerActionResponses(credentials,roomToken )
+        apiService.getSpeakerActionResponses(credentials,roomToken)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(new Observer<List<RequestToActionGenericResult>>() {
@@ -3052,129 +3156,73 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onNext(@io.reactivex.annotations.NonNull List<RequestToActionGenericResult> lists) {
-                    RequestToActionGenericResult requestToActionGenericResult = new RequestToActionGenericResult();
 
                     Log.d(TAG, "Listening to requests..........");
 
-                    if (lists.size() > 0) {
+                    requestResultList = (ArrayList<RequestToActionGenericResult>) lists;
 
-                        for (RequestToActionGenericResult item : lists) {
-                            Log.d(TAG, "Looping lists.........: "+lists.size());
-                            if (item.getUserId().equalsIgnoreCase(conversationUser.getUserId())) {
-                                requestToActionGenericResult = item;
-
-                                allocatedSpeakTime = requestToActionGenericResult.getDuration() / 60; //to get it in minutes
-                                talkingSince = requestToActionGenericResult.getTalkingSince();
-
-                                //perform action based on result
-                                if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_SPEAK) {
-                                    speakerIsApproved = requestToActionGenericResult.getApproved();
-
-                                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                                    SharedPreferences.Editor editor = sharedPref.edit();
-                                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
-                                                  requestToActionGenericResult.getId());
-                                    editor.apply();
-
-                                    //permission granted
-                                    if (requestToActionGenericResult.getApproved()) {
-                                        // minutes
-                                        if (requestToActionGenericResult.getPaused()) {
-                                            //user paused
-                                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
-
-                                        } else if (requestToActionGenericResult.getCanceled()) {
-                                            binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                           R.color.colorPrimary));
-                                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                                        } else {
-                                            binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
-                                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                           R.color.kikao_danger));
-                                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
-                                        }
-                                    }else if (requestToActionGenericResult.getCanceled()) {
-                                        binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                       R.color.colorPrimary));
-                                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                                    } else {
-
-                                        binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
-                                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                       R.color.kikao_danger));
-                                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-                                    }
-                                } else if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_INTERVENE) {
-                                    speakerIsApproved = requestToActionGenericResult.getApproved();
-                                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                                    SharedPreferences.Editor editor = sharedPref.edit();
-                                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
-                                                  requestToActionGenericResult.getId());
-                                    editor.apply();
-                                    //permission granted
-                                    if (requestToActionGenericResult.getApproved()) {
-                                        // minutes
-                                        if (requestToActionGenericResult.getPaused()) {
-                                            //user paused
-                                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
-
-                                        } else if (requestToActionGenericResult.getCanceled()) {
-                                            binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                               R.color.colorPrimary));
-                                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                                        } else {
-                                            binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
-                                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                               R.color.kikao_danger));
-                                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
-                                        }
-                                    } else if (requestToActionGenericResult.getCanceled()) {
-                                        binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                           R.color.colorPrimary));
-                                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                                    } else {
-                                        binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
-                                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                           R.color.kikao_danger));
-                                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-                                    }
+                    //  listen to responses
+                    if(requestResultList.size() > 0){
+//                        Log.d(TAG, "Listening to List..........");
+//                        runOnUiThread(() -> {
+//                            // Stuff that updates the UI
+//                            listenResponses();
+//                        });
+                        // handle cancel speak
+                        if(speakerApproved){
+                            boolean found = false;
+                            for (RequestToActionGenericResult activity : requestResultList) {
+                                if (Objects.equals(activity.getId(), speakResult.getId())) {
+                                    found = true;
+                                    break;
                                 }
-
-                                break;
-                            } else {
-                                binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                                binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                               R.color.colorPrimary));
-                                binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                                binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                                   R.color.colorPrimary));
-                                manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+                            }
+                            if(!found){
+                                System.out.println("SpeakResult is not found.");
+                                speakResult = null;
+                                speakerApproved = false;
+                                handleCancelSpeak();
+                            }
+                        }
+                        // handle cancel intervene
+                        if(interveneApproved){
+                            boolean found = false;
+                            for (RequestToActionGenericResult activity : requestResultList) {
+                                if (Objects.equals(activity.getId(), interveneResult.getId())) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if(!found){
+                                System.out.println("SpeakResult is not found.");
+                                interveneResult = null;
+                                interveneApproved = false;
+                                handleCancelIntervene();
                             }
                         }
                     }else{
-                        binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                       R.color.colorPrimary));
+                        Log.d(TAG, "No requests to listen to.......");
 
-                        binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                                                                           R.color.colorPrimary));
-                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+                        if(speakResult!=null){
+                            Log.d(TAG, "Request to action canceled........");
+                            speakResult = null;
+                            speakerApproved = false;
+                            handleCancelSpeak();
+                        }
+
+                        if(interveneResult!=null){
+                            Log.d(TAG, "Request to action canceled........");
+                            interveneResult = null;
+                            interveneApproved = false;
+                            handleCancelIntervene();
+                        }
                     }
-
                 }
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
                     //todo show error to user
+                    Log.d(TAG, "onError: " + e.getMessage());
                 }
 
                 @Override
@@ -3184,12 +3232,358 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
+    private void listenResponses(){
+        if(speakResult != null){
+            for (RequestToActionGenericResult activity : requestResultList) {
+                if (Objects.equals(activity.getId(), speakResult.getId())) {
+                    Log.d(TAG, "New speak request to action listenResponses........");
+
+                    if (activity.getApproved()) {
+                        Log.d(TAG, "Approved speak request to action listenResponses........");
+                        speakerApproved = true;
+
+                        // show controls
+                        showControls();
+
+                        // check if meeting started
+                        if(activity.getStarted()) {
+                            startTimer();
+                            Log.d(TAG, "Started speak request to action listenResponses........");
+                            // show timer for plenary
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                Log.d(TAG, "Show timer for plenary........");
+                                // show timer button
+                                showTimerButton(true);
+                            }
+
+                            if(activity.getPaused()) {
+                                Log.d(TAG, "Paused speak request to action listenResponses........");
+                                // hide media controls
+                                pauseTimer(true);
+                                hideControls();
+                                // pause timer during plenary_call
+                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                    showTimerButton(false);
+                                    // handle timer pause
+                                }
+
+                            }else {
+                                Log.d(TAG, "Resumed speak request to action listenResponses........");
+                                // start timer count again
+//                                startTimer();
+//                                pauseTimer(false);
+                                // pause timer during plenary_call
+                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                    showTimerButton(true);
+//                                    startTimer();
+                                    // handle timer pause
+                                    pauseTimer(false);
+                                }
+                            }
+                        }
+                    }else {
+                        Log.d(TAG,"No approved speak.....");
+                        if(!interveneApproved) {
+                            // hide media controls if not approved intervene
+                            hideControls();
+                            showTimerButton(false);
+                            Log.d(TAG, "Hide media controls if not approved intervene........");
+                        }
+                    }
+                }
+
+            }
+
+            // handle cancel speak when not contain in list
+            if(speakerApproved){
+                boolean found = false;
+                for (RequestToActionGenericResult activity : requestResultList) {
+                    if (Objects.equals(activity.getId(), speakResult.getId())) {
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    System.out.println("SpeakResult is not found.");
+                    speakResult = null;
+                    speakerApproved = false;
+                    handleCancelSpeak();
+                }
+            }
+
+        }
+
+        if(interveneResult != null){
+
+            for (RequestToActionGenericResult activity : requestResultList) {
+
+                if (Objects.equals(activity.getId(), interveneResult.getId())) {
+                    Log.d(TAG, "New speak request to action listenResponses........");
+
+                    if (activity.getApproved()) {
+                        Log.d(TAG, "Approved speak request to action listenResponses........");
+                        interveneApproved = true;
+
+                        // show controls
+                        showControls();
+
+                        // check if meeting started
+                        if(activity.getStarted()) {
+                            startTimer();
+
+                            Log.d(TAG, "Started speak request to action listenResponses........");
+                            // show timer for plenary
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                Log.d(TAG, "Show timer for plenary........");
+                                // show timer button
+//                                if (binding.requestsLinearLayout!=null){
+//                                    binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+//                                    if (binding.timeLeftButton!=null){
+//                                        binding.timeLeftButton.setVisibility(View.VISIBLE);
+//                                    }
+//                                }
+                                showTimerButton(true);
+
+                            }
+
+                            if(activity.getPaused()) {
+                                Log.d(TAG, "Paused speak request to action listenResponses........");
+                                // handle timer pause
+                                pauseTimer(true);
+                                // hide media controls
+                                hideControls();
+                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                    showTimerButton(false);
+                                    // handle timer pause
+                                }
+                            }else {
+                                Log.d(TAG, "Resumed speak request to action listenResponses........");
+                                // start timer count again
+//                                startTimer();
+//                                pauseTimer(false);
+                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                    showTimerButton(true);
+//                                    startTimer();
+                                    // handle timer pause
+                                    pauseTimer(false);
+                                }
+                            }
+                        }
+                    }else {
+                        Log.d(TAG,"No approved speak.....");
+                        if(!interveneApproved) {
+                            // hide media controls if not approved intervene
+                            hideControls();
+                            showTimerButton(false);
+                            Log.d(TAG, "Hide media controls if not approved intervene........");
+                        }
+                    }
+                }
+
+            }
+
+            // handle cancel intervene when not contain in the list
+            if(interveneApproved){
+                boolean found = false;
+                for (RequestToActionGenericResult activity : requestResultList) {
+                    if (Objects.equals(activity.getId(), interveneResult.getId())) {
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    System.out.println("SpeakResult is not found.");
+                    interveneResult = null;
+                    interveneApproved = false;
+                    handleCancelIntervene();
+                }
+            }
+        }
+    }
+
+    private void handleCancelSpeak(){
+
+        Log.d(TAG, "handleCancelSpeak........");
+
+        // hide controls
+        hideControls();
+
+        // reset speak result
+        speakResult = null;
+
+        // reset request to action
+        binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
+        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+            R.color.colorPrimary));
+
+        // cancel with api
+        cancelRequestPermissionToSpeakNetworkCall();
+
+        // reset and hide timer
+//        binding.timeLeftButton.setVisibility(View.GONE);
+        //cancel timer
+//        if(countDownTimer!=null){
+//            countDownTimer.cancel();
+//        }
+        // TODO: handle timer for plenary
+
+
+    }
+
+    private void handleCancelIntervene(){
+        // hide controls
+        hideControls();
+
+        // cancel with api
+        cancelRequestPermissionToInterveneNetworkCall();
+
+        // reset and hide timer
+        // TODO: handle timer for plenary
+
+        // reset intervene result
+        interveneResult = null;
+
+        // reset request to action
+        binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
+        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                    R.color.colorPrimary));
+    }
+
+    private void listenToRequests(){
+        RequestToActionGenericResult requestToActionGenericResult = new RequestToActionGenericResult();
+
+        //todo listen to requests
+        if(requestResultList.size()>0){
+        for (RequestToActionGenericResult item : requestResultList) {
+            // assign request to action to item
+
+            Log.d(TAG, "listenToRequests lists.........: "+ requestResultList.size());
+
+            if (item.getUserId().equalsIgnoreCase(conversationUser.getUserId())) {
+                requestToActionGenericResult = item;
+
+                allocatedSpeakTime = requestToActionGenericResult.getDuration() / 60; //to get it in minutes
+                talkingSince = requestToActionGenericResult.getTalkingSince();
+
+                // log allocatedSpeakTime
+                Log.d(TAG, "allocatedSpeakTime listen.........: " + allocatedSpeakTime);
+                Log.d(TAG, "talkingSince listen.........: " + talkingSince);
+
+                //if request to speak
+                if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_SPEAK) {
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                        requestToActionGenericResult.getId());
+                    editor.apply();
+
+                    //permission granted
+                    if (requestToActionGenericResult.getApproved()) {
+                        speakerApproved = requestToActionGenericResult.getApproved();
+
+                        // minutes
+                        if (requestToActionGenericResult.getPaused()) {
+                            //user paused
+                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
+
+                        } else if (requestToActionGenericResult.getCanceled()) {
+                            binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
+                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                                R.color.colorPrimary));
+                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+
+                        } else {
+                            binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
+                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                                R.color.kikao_danger));
+                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
+                        }
+                    }else if (requestToActionGenericResult.getCanceled()) {
+                        binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
+                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                            R.color.colorPrimary));
+                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+
+                    }
+//                    else {
+//                        binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
+//                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                            R.color.kikao_danger));
+//                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+//                    }
+                }
+
+                // if request to intervene
+                if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_INTERVENE) {
+                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                        requestToActionGenericResult.getId());
+                    editor.apply();
+                    //permission granted
+                    if (requestToActionGenericResult.getApproved()) {
+                        interveneApproved = requestToActionGenericResult.getApproved();
+
+                        // minutes
+                        if (requestToActionGenericResult.getPaused()) {
+                            //user paused
+                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
+
+                        } else if (requestToActionGenericResult.getCanceled()) {
+                            binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
+                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                                R.color.colorPrimary));
+                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+
+                        } else {
+                            binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
+                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                                R.color.kikao_danger));
+                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
+                        }
+                    } else if (requestToActionGenericResult.getCanceled()) {
+                        binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
+                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+                            R.color.colorPrimary));
+                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+
+                    }
+//                    else {
+//                        binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
+//                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                            R.color.kikao_danger));
+//                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+//                    }
+                }
+
+                break;
+            }
+        }
+
+        }
+
+
+//        else{
+//            Log.d(TAG, "onEvent: No active requests 0");
+//            binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
+//            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                R.color.colorPrimary));
+//
+//            binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
+//            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
+//                R.color.colorPrimary));
+//
+//            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
+//        }
+    }
+
     private void manageControls(String action){
         Log.d(TAG, "Speaker unmuted: "+speakerhasUnmuted);
         Log.d(TAG, "Action called: "+action);
-        if (action.equals(KikaoUtilitiesConstants.ACTION_NONE)){
-
-        }else if(action.equals(KikaoUtilitiesConstants.ACTION_PAUSE_USER)){
+//        if (action.equals(KikaoUtilitiesConstants.ACTION_NONE)){
+//
+//        }else
+        if(action.equals(KikaoUtilitiesConstants.ACTION_PAUSE_USER)){
             // to disable controls when user is paused
             if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
                 showCommitteeControlsDisabled();
@@ -3229,8 +3623,57 @@ public class CallActivity extends CallBaseActivity {
         binding.callControlRaiseHand.setVisibility(View.VISIBLE);
     }
 
+    private void showControls(){
+        Log.d(TAG, "showControls.........:");
+        binding.speakerButton.setVisibility(View.GONE);
+        binding.microphoneButton.setVisibility(View.VISIBLE);
+        binding.cameraButton.setVisibility(View.VISIBLE);
+        binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
+        binding.selfVideoRenderer.setVisibility(View.VISIBLE);
+        if (cameraEnumerator.getDeviceNames().length < 2) {
+            binding.switchSelfVideoButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideControls(){
+        Log.d(TAG, "hideControls.........:");
+        //mute mic and camera
+        audioOn = false;
+        videoOn = false;
+
+        //disable audioOn = false
+        toggleMedia(false, false);
+        //disable video
+        toggleMedia(videoOn, true);
+
+        binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
+        binding.microphoneButton.setVisibility(View.GONE);
+
+        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
+        binding.cameraButton.setVisibility(View.GONE);
+
+        binding.switchSelfVideoButton.setVisibility(View.GONE);
+        binding.selfVideoRenderer.setVisibility(View.GONE);
+
+        //cancel timer
+        if(countDownTimer!=null){
+            countDownTimer.cancel();
+        }
+    }
+
+    private void showTimerButton(boolean show){
+        if(show){
+            binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            binding.timeLeftButton.setVisibility(View.VISIBLE);
+        }else{
+            binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            binding.timeLeftButton.setVisibility(View.GONE);
+        }
+    }
+
+
     private void showCommitteeControlsDisabled(){
-        Log.d(TAG, "Show commitee controls");
+        Log.d(TAG, "Disable committee controls");
         //mute mic and camera
         audioOn = false;
         videoOn = false;
@@ -3249,9 +3692,11 @@ public class CallActivity extends CallBaseActivity {
 
 
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
-        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
         binding.microphoneButton.setVisibility(View.GONE);
+
+        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
         binding.cameraButton.setVisibility(View.GONE);
+
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
 
@@ -3263,7 +3708,7 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void showPlenaryControlsDisabled(){
-        Log.d(TAG, "Show plenary controls");
+        Log.d(TAG, "Disable plenary controls");
         //mute mic and camera
         audioOn = false;
         videoOn = false;
@@ -3295,20 +3740,10 @@ public class CallActivity extends CallBaseActivity {
             countDownTimer.cancel();
         }
 
-//        //mute mic and camera
-//        audioOn = false;
-//        videoOn = false;
-//
-//        //disable audio
-//        toggleMedia(audioOn, false);
-//        //disable video
-//        toggleMedia(videoOn, true);
-
-
     }
 
     private void showCommitteeControlsEnabled(){
-        Log.d(TAG, "Show commitee controls");
+        Log.d(TAG, "Show committee controls");
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
@@ -3335,6 +3770,8 @@ public class CallActivity extends CallBaseActivity {
             }
         }
 
+        //show timer and wait to start
+//        initTimer(allocatedSpeakTime);
 
     }
 
@@ -3408,14 +3845,31 @@ public class CallActivity extends CallBaseActivity {
 
             }
             public void onFinish() {
-                binding.timeLeftButton.setText("Done!");
-                binding.requestToSpeakButton.setText(R.string.kikao_request_to_speak);
-                binding.requestToSpeakButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
-                binding.requestToInterveneButton.setText(R.string.kikao_request_to_intervene);
-                binding.requestToInterveneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
                 showPlenaryControlsDisabled();
+                binding.timeLeftButton.setVisibility(View.GONE);
+
+//                binding.timeLeftButton.setText("Done!");
+
+                if(interveneApproved){
+                    binding.requestToInterveneButton.setText(R.string.kikao_request_to_intervene);
+                    binding.requestToInterveneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                        "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
+                }
+
+                if(speakerApproved){
+                    binding.requestToSpeakButton.setText(R.string.kikao_request_to_speak);
+                    binding.requestToSpeakButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                        "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
+                }
+
+//                binding.requestToSpeakButton.setText(R.string.kikao_request_to_speak);
+//                binding.requestToSpeakButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+//                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
+
+//                binding.requestToInterveneButton.setText(R.string.kikao_request_to_intervene);
+//                binding.requestToInterveneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+//                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
+//                showPlenaryControlsDisabled();
                 //todo make API call that speaker time is finished
             }
         };
@@ -3446,7 +3900,13 @@ public class CallActivity extends CallBaseActivity {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+                // update network call
                 updateStuffNetworkCall();
+                // update UI
+                runOnUiThread(() -> {
+                    // Stuff that updates the UI
+                    listenResponses();
+                });
             }
         }, 0, 1000);//put here time 1000 milliseconds=1 second
 

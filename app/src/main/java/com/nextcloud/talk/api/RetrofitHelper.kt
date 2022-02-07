@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.nextcloud.talk.BuildConfig
 import com.nextcloud.talk.R
+import com.nextcloud.talk.utils.ApiUtils
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -19,10 +20,12 @@ class RetrofitHelper(private val context: Context) {
 
     // TODO: Make dynamic url here for .ml
     // init the api service
-    fun getApiService(): ApiService {
+    fun getApiService(baseURL: String): ApiService {
+        // log baseURL
+        Log.d(TAG_API_SERVICE, "getApiService baseURL: $baseURL")
+
         return Retrofit.Builder()
-//        context.getString(R.string.kikaoutils_api_base_url)
-            .baseUrl("https://bungevirtualbackup.ml/")
+            .baseUrl(baseURL)
             .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .addConverterFactory(GsonConverterFactory.create())
             .client(okHttpClient())

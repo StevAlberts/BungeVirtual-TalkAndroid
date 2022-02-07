@@ -2239,7 +2239,7 @@ class ChatController(args: Bundle) :
             conversationVoiceCallMenuItem = menu.findItem(R.id.conversation_voice_call)
             conversationVideoMenuItem = menu.findItem(R.id.conversation_video_call)
         } else {
-//            conversationInfoMenuItem = menu.findItem(R.id.conversation_info)
+            conversationInfoMenuItem = menu.findItem(R.id.conversation_info)
             conversationVoiceCallMenuItem = menu.findItem(R.id.conversation_voice_call)
             conversationVideoMenuItem = menu.findItem(R.id.conversation_video_call)
 
@@ -2278,10 +2278,10 @@ class ChatController(args: Bundle) :
                 }
                 return false
             }
-//            R.id.conversation_info -> {
-//                showConversationInfoScreen()
-//                return true
-//            }
+            R.id.conversation_info -> {
+                showConversationInfoScreen()
+                return true
+            }
             else -> return super.onOptionsItemSelected(item)
         }
     }

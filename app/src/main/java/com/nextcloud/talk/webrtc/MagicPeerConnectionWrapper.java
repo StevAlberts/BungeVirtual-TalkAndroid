@@ -179,6 +179,9 @@ public class MagicPeerConnectionWrapper {
     }
 
     public void raiseHand(String sessionId, Boolean raiseHand){
+        Log.d(TAG, "sessionId....: " + sessionId + " raiseHand....:" + raiseHand);
+        Log.d(TAG, "raiseHandObject.......: " + new RaiseHandEvent("raiseHand", sessionId, videoStreamType, raiseHand ));
+
         EventBus.getDefault().post(new RaiseHandEvent("raiseHand", sessionId, videoStreamType, raiseHand ));
     }
 

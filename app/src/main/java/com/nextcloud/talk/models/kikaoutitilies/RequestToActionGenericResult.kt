@@ -39,6 +39,4 @@ class RequestToActionGenericResult {
     @JsonField(name = ["talkingSince"])
     var talkingSince: Long? = 0L
 
-
-
 }
