@@ -118,9 +118,12 @@ public class RestModule {
     @Singleton
     @Provides
     Retrofit provideRetrofit(OkHttpClient httpClient) {
+        Log.d(TAG, "provideRetrofit...............:"+httpClient.toString());
+        Log.d(TAG, "provideRetrofit dns...............:"+httpClient.dns());
         Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
                 .client(httpClient)
-                .baseUrl("https://nextcloud.com")
+//                .baseUrl("https://nextcloud.com")
+                .baseUrl("https://bungevirtual.com")
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io()))
                 .addConverterFactory(LoganSquareConverterFactory.create());
 

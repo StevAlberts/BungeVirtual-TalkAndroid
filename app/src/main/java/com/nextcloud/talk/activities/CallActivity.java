@@ -35,6 +35,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
+import android.icu.text.SimpleDateFormat;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -109,11 +110,12 @@ import com.nextcloud.talk.webrtc.MagicWebSocketInstance;
 import com.nextcloud.talk.webrtc.WebSocketConnectionHelper;
 import com.wooplr.spotlight.SpotlightView;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.joda.time.Instant;
+import org.joda.time.Interval;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.parceler.Parcel;
@@ -140,12 +142,14 @@ import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.io.IOException;
+import java.security.Timestamp;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -198,7 +202,7 @@ public class CallActivity extends CallBaseActivity {
 
     private Integer allocatedSpeakTime = 0;
 
-    private Long talkingSince = 0L;
+    private Integer talkingSince = 0;
 
     private Boolean speakTimerStarted = false;
 
@@ -208,7 +212,7 @@ public class CallActivity extends CallBaseActivity {
 
     private Boolean speakerApproved = false;
 
-    private CountDownTimer countDownTimer;
+    private CountDownTimer timeCounter;
 
     private boolean handRaised = false;
 
@@ -950,11 +954,7 @@ public class CallActivity extends CallBaseActivity {
 //            Log.d(TAG, "We are not here...."+speakTimerStarted);
 //            if (!speakTimerStarted){
 
-                //start timer if plenary
-//                speakTimerStarted = true;
-                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                    startTimer();
-                }
+
 
                 // start all timers
 //                startTimer();
@@ -1011,6 +1011,7 @@ public class CallActivity extends CallBaseActivity {
                             public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
                                 // log started speak
                                 Log.d(TAG, "Started speak timer");
+
                             }
 
                             @Override
@@ -2822,10 +2823,10 @@ public class CallActivity extends CallBaseActivity {
             showStaffControls();
         }else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)){
             showPlenaryControlsDisabled();
-            updateStuff();
+            kikaoListener();
         }else if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)){
             showCommitteeControlsDisabled();
-            updateStuff();
+            kikaoListener();
         }
 
 
@@ -3163,13 +3164,8 @@ public class CallActivity extends CallBaseActivity {
 
                     //  listen to responses
                     if(requestResultList.size() > 0){
-//                        Log.d(TAG, "Listening to List..........");
-//                        runOnUiThread(() -> {
-//                            // Stuff that updates the UI
-//                            listenResponses();
-//                        });
                         // handle cancel speak
-                        if(speakerApproved){
+                        if(speakerApproved && speakResult != null){
                             boolean found = false;
                             for (RequestToActionGenericResult activity : requestResultList) {
                                 if (Objects.equals(activity.getId(), speakResult.getId())) {
@@ -3181,22 +3177,25 @@ public class CallActivity extends CallBaseActivity {
                                 System.out.println("SpeakResult is not found.");
                                 speakResult = null;
                                 speakerApproved = false;
+                                showTimerButton(false);
                                 handleCancelSpeak();
                             }
                         }
                         // handle cancel intervene
-                        if(interveneApproved){
+                        if(interveneApproved && interveneResult != null){
                             boolean found = false;
                             for (RequestToActionGenericResult activity : requestResultList) {
                                 if (Objects.equals(activity.getId(), interveneResult.getId())) {
+//                                if (Objects.equals(activity.getId().toString(), KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID)) {
                                     found = true;
                                     break;
                                 }
                             }
                             if(!found){
-                                System.out.println("SpeakResult is not found.");
+                                System.out.println("InterveneResult is not found.");
                                 interveneResult = null;
                                 interveneApproved = false;
+                                showTimerButton(false);
                                 handleCancelIntervene();
                             }
                         }
@@ -3207,6 +3206,7 @@ public class CallActivity extends CallBaseActivity {
                             Log.d(TAG, "Request to action canceled........");
                             speakResult = null;
                             speakerApproved = false;
+                            showTimerButton(false);
                             handleCancelSpeak();
                         }
 
@@ -3214,6 +3214,7 @@ public class CallActivity extends CallBaseActivity {
                             Log.d(TAG, "Request to action canceled........");
                             interveneResult = null;
                             interveneApproved = false;
+                            showTimerButton(false);
                             handleCancelIntervene();
                         }
                     }
@@ -3240,6 +3241,7 @@ public class CallActivity extends CallBaseActivity {
 
                     if (activity.getApproved()) {
                         Log.d(TAG, "Approved speak request to action listenResponses........");
+
                         speakerApproved = true;
 
                         // show controls
@@ -3247,37 +3249,38 @@ public class CallActivity extends CallBaseActivity {
 
                         // check if meeting started
                         if(activity.getStarted()) {
-                            startTimer();
+
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
                             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
                                 showTimerButton(true);
+//                                startTimerCount(activity.getDuration());
+//                                timeCounter.start();
                             }
 
                             if(activity.getPaused()) {
                                 Log.d(TAG, "Paused speak request to action listenResponses........");
                                 // hide media controls
-                                pauseTimer(true);
                                 hideControls();
                                 // pause timer during plenary_call
-                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                                    showTimerButton(false);
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(false);
+//                                    timeCounter.pause();
                                     // handle timer pause
-                                }
+//                                }
 
                             }else {
                                 Log.d(TAG, "Resumed speak request to action listenResponses........");
+                                startTimerCount(activity.getDuration(),activity.getTalkingSince());
                                 // start timer count again
 //                                startTimer();
 //                                pauseTimer(false);
                                 // pause timer during plenary_call
                                 if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                                    showTimerButton(true);
-//                                    startTimer();
-                                    // handle timer pause
-                                    pauseTimer(false);
+                                    // handle timer resume
+//                                    timeCounter.resume();
                                 }
                             }
                         }
@@ -3329,44 +3332,42 @@ public class CallActivity extends CallBaseActivity {
 
                         // check if meeting started
                         if(activity.getStarted()) {
-                            startTimer();
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
                             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
-//                                if (binding.requestsLinearLayout!=null){
-//                                    binding.requestsLinearLayout.setVisibility(View.VISIBLE);
-//                                    if (binding.timeLeftButton!=null){
-//                                        binding.timeLeftButton.setVisibility(View.VISIBLE);
-//                                    }
-//                                }
                                 showTimerButton(true);
-
+//                                startTimerCount(activity.getDuration());
+//                                timeCounter.start();
                             }
 
                             if(activity.getPaused()) {
                                 Log.d(TAG, "Paused speak request to action listenResponses........");
                                 // handle timer pause
-                                pauseTimer(true);
+//                                timeCounter.pause();
                                 // hide media controls
                                 hideControls();
-                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                                    showTimerButton(false);
-                                    // handle timer pause
-                                }
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(false);
+//                                    // handle timer pause
+//                                }
                             }else {
                                 Log.d(TAG, "Resumed speak request to action listenResponses........");
+                                startTimerCount(activity.getDuration(),activity.getTalkingSince());
+                                // resume timer
+//                                timeCounter.resume();
+
                                 // start timer count again
 //                                startTimer();
 //                                pauseTimer(false);
-                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                                    showTimerButton(true);
-//                                    startTimer();
-                                    // handle timer pause
-                                    pauseTimer(false);
-                                }
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(true);
+////                                    startTimer();
+//                                    // handle timer pause
+//                                    pauseTimer(false);
+//                                }
                             }
                         }
                     }else {
@@ -3408,6 +3409,12 @@ public class CallActivity extends CallBaseActivity {
         // hide controls
         hideControls();
 
+        // cancel with api
+        cancelRequestPermissionToSpeakNetworkCall();
+
+        // reset and hide timer
+        showTimerButton(false);
+
         // reset speak result
         speakResult = null;
 
@@ -3415,19 +3422,6 @@ public class CallActivity extends CallBaseActivity {
         binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
         binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
             R.color.colorPrimary));
-
-        // cancel with api
-        cancelRequestPermissionToSpeakNetworkCall();
-
-        // reset and hide timer
-//        binding.timeLeftButton.setVisibility(View.GONE);
-        //cancel timer
-//        if(countDownTimer!=null){
-//            countDownTimer.cancel();
-//        }
-        // TODO: handle timer for plenary
-
-
     }
 
     private void handleCancelIntervene(){
@@ -3438,7 +3432,7 @@ public class CallActivity extends CallBaseActivity {
         cancelRequestPermissionToInterveneNetworkCall();
 
         // reset and hide timer
-        // TODO: handle timer for plenary
+        showTimerButton(false);
 
         // reset intervene result
         interveneResult = null;
@@ -3593,7 +3587,7 @@ public class CallActivity extends CallBaseActivity {
 
             // pause timer during plenary_call
             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                pauseTimer(true);
+//                pauseTimer(true);
             }
         }else if(action.equals(KikaoUtilitiesConstants.ACTION_RESUME_USER)){
             //todo unpause timer logic or add another Constant -> ACTION_UNPAUSE_USER
@@ -3605,7 +3599,7 @@ public class CallActivity extends CallBaseActivity {
                     showPlenaryControlsEnabled();
                     // unpause timer during plenary_call
                     if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                        pauseTimer(false);
+//                        pauseTimer(false);
                     }
                 }
             }
@@ -3655,10 +3649,6 @@ public class CallActivity extends CallBaseActivity {
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
 
-        //cancel timer
-        if(countDownTimer!=null){
-            countDownTimer.cancel();
-        }
     }
 
     private void showTimerButton(boolean show){
@@ -3668,6 +3658,10 @@ public class CallActivity extends CallBaseActivity {
         }else{
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             binding.timeLeftButton.setVisibility(View.GONE);
+            //cancel timer
+            if(timeCounter != null){
+                timeCounter.cancel();
+            }
         }
     }
 
@@ -3701,9 +3695,9 @@ public class CallActivity extends CallBaseActivity {
         binding.selfVideoRenderer.setVisibility(View.GONE);
 
         //cancel timer
-        if(countDownTimer!=null){
-            countDownTimer.cancel();
-        }
+//        if(countDownTimer!=null){
+//            countDownTimer.cancel();
+//        }
 
     }
 
@@ -3730,15 +3724,17 @@ public class CallActivity extends CallBaseActivity {
 
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
         binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
+
         binding.microphoneButton.setVisibility(View.GONE);
         binding.cameraButton.setVisibility(View.GONE);
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
 
         //cancel timer
-        if(countDownTimer!=null){
-            countDownTimer.cancel();
-        }
+
+//        if(countDownTimer!=null){
+//            countDownTimer.cancel();
+//        }
 
     }
 
@@ -3804,7 +3800,144 @@ public class CallActivity extends CallBaseActivity {
         }
 
         //show timer and wait to start
-        initTimer(allocatedSpeakTime);
+//        initTimer(allocatedSpeakTime);
+
+    }
+
+    private void startTimerCount(Integer duration, Integer talkingSince){
+        Log.d(TAG, "Start timer count......");
+
+        // log duration and talking since
+        Log.d(TAG, "Duration..: " + duration + " Talking since..: " + talkingSince);
+
+        // calculate time left
+
+
+            // now to timestamp
+//        long nowTimestamp = Instant.now().toEpochMilli();
+//        Interval interval = new Interval(talkingSince, new Instant());
+//        long duration = interval.toDurationMillis();
+//        Log.d(TAG, "Duration..: " + duration);
+        Date now = new Date();
+        long nowTimestamp = now.getTime();
+
+        // difference between now and talking since
+        long duratio = nowTimestamp - talkingSince;
+        Log.d(TAG, "Duration..: " + duratio);
+
+        // convert talking since to date
+        Date date = new Date(talkingSince);
+        Log.d(TAG, "Date..: " + date);
+
+
+
+
+        Instant instant = Instant.ofEpochMilli(nowTimestamp) ;
+
+        Log.d(TAG, "Duration..: " + duration);
+
+            // log now timestamp
+                Log.d(TAG, "Now timestamp........: " + nowTimestamp);
+
+//            long diff = nowTimestamp - talkingSince;
+
+
+
+        Date since = new Date(talkingSince);
+        Date nowDate = new Date(nowTimestamp);
+
+        // log since and nowDate
+        Log.d(TAG, "Since..: " + since + " NowDate..: " + nowDate);
+
+        long diff = instant.getMillis() - talkingSince;
+
+        long diffSeconds = diff / 1000 % 60;
+        long diffMinutes = diff / (60 * 1000) % 60;
+        long diffHours = diff / (60 * 60 * 1000) % 24;
+        long diffDays = diff / (24 * 60 * 60 * 1000);
+
+        System.out.print(diffDays + " days, ");
+        System.out.print(diffHours + " hours, ");
+        System.out.print(diffMinutes + " minutes, ");
+        System.out.print(diffSeconds + " seconds.");
+
+            Log.d(TAG, "Diff........: " + diff);
+
+        Log.d(TAG, "Diff.Time.......: " + diffHours+":"+diffMinutes+":"+diffSeconds);
+
+
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+        String timeLeftString = formatter.format(diff);
+
+        Log.d(TAG, "Time String..: " + timeLeftString);
+
+            long theMinutes = duration - diff;
+
+                Log.d(TAG, "Time left..: " + theMinutes);
+
+            Date timeLeft = new Date(theMinutes);
+
+                Log.d(TAG, "Now date..: " + timeLeft);
+
+
+
+            if(theMinutes>0){
+                binding.timeLeftButton.setText(timeLeftString);
+
+                if(theMinutes > 60){
+                    binding.timeLeftButton.setBackgroundColor(Color.GREEN);
+                }else if(theMinutes < 30){
+                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_danger)))));
+                }else{
+                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_warning)))));
+                }
+            }
+
+
+//        Long durationTimestamp = duration * 1000;
+//        Long talkingSinceTimestamp = talkingSince * 1000;
+//        Long timeLeft = durationTimestamp - (nowTimestamp - talkingSinceTimestamp);
+//        Long timeLeft = duration * 1000 - (nowTimestamp - talkingSince * 1000);
+
+
+//        TimeUnit.NANOSECONDS
+//             Long Timestamp = 1633304782;
+//        Date timeD = new Date(Timestamp * 1000);
+//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//
+//        String Time = sdf.format(timeD);
+
+//RESULT this code convert 1633304782 to 05:46:33
+
+//        long diff = today - talkingSince;
+//        double theMinutes = duration - diff;
+//        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+//    [dateFormatter setDateFormat:@"mm:ss"];
+//
+//        NSDate *epochNSDate = [[NSDate alloc] initWithTimeIntervalSince1970:theMinutes];
+//
+////    NSLog(@"epochNSDate.....: %@", epochNSDate);
+//
+//
+//        NSString *time = [dateFormatter stringFromDate:epochNSDate];
+////    NSLog (@"Time:- %@", time);
+//
+//
+//        if(theMinutes>0){
+//        [_timerButton setTitle:time forState: UIControlStateNormal];
+//
+//            if(theMinutes > 60){
+//                _timerButton.backgroundColor = [UIColor systemGreenColor];
+//            }else if(theMinutes < 30){
+//                _timerButton.backgroundColor = [UIColor systemRedColor];
+//            }else{
+//                _timerButton.backgroundColor = [UIColor systemOrangeColor];
+//            }
+//        }
+
+
 
     }
 
@@ -3817,7 +3950,7 @@ public class CallActivity extends CallBaseActivity {
         if (binding.timeLeftButton!=null) {
             binding.timeLeftButton.setText(durationInMinutesStr);
         }
-        countDownTimer =  new CountDownTimer(durationInMinutes*60000, 1000) {
+        new CountDownTimer(durationInMinutes*60000, 1000) {
             public void onTick(long millisUntilFinished) {
                 String allocatedSpeakTimeStr = String.format("%02d:%02d",
                                                              TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished),
@@ -3875,26 +4008,11 @@ public class CallActivity extends CallBaseActivity {
         };
     }
 
-    private void pauseTimer(Boolean pause){
-        //check if this incoming request is meant for us
-        if (pause) {
-            if (countDownTimer != null) {
-                countDownTimer.pause();
-            }
-        } else {
-            if (countDownTimer != null) {
-                countDownTimer.resume();
-            }
-        }
-    }
 
-    private void startTimer(){
-        if (countDownTimer != null) {
-            countDownTimer.start();
-        }
-    }
 
-    private void updateStuff(){
+
+
+    private void kikaoListener(){
         Log.d(TAG, "Calling kikao");
         timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {

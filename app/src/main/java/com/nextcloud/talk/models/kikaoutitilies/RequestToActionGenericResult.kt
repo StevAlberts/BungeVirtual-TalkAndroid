@@ -37,6 +37,6 @@ class RequestToActionGenericResult {
     var duration: Int? = 0
 
     @JsonField(name = ["talkingSince"])
-    var talkingSince: Long? = 0L
+    var talkingSince: Int? = 0
 
 }

@@ -111,6 +111,7 @@ public class RestModule {
     @Singleton
     @Provides
     Retrofit provideRetrofit(OkHttpClient httpClient) {
+
         Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
                 .client(httpClient)
                 .baseUrl("https://nextcloud.com")

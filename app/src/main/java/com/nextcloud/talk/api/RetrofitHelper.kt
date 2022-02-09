@@ -22,7 +22,7 @@ class RetrofitHelper(private val context: Context) {
     // init the api service
     fun getApiService(baseURL: String): ApiService {
         // log baseURL
-        Log.d(TAG_API_SERVICE, "getApiService baseURL: $baseURL")
+        Log.d(TAG_API_SERVICE, "getApiService baseURL....: $baseURL")
 
         return Retrofit.Builder()
             .baseUrl(baseURL)
@@ -34,11 +34,7 @@ class RetrofitHelper(private val context: Context) {
     }
 
     private fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
-        val interceptor = HttpLoggingInterceptor(object : HttpLoggingInterceptor.Logger {
-            override fun log(message: String) {
-                Log.d(TAG_API_SERVICE, message)
-            }
-        })
+        val interceptor = HttpLoggingInterceptor { message -> Log.d(TAG_API_SERVICE, message) }
         if (BuildConfig.DEBUG) {
             interceptor.level = HttpLoggingInterceptor.Level.BODY
         }
@@ -47,8 +43,9 @@ class RetrofitHelper(private val context: Context) {
     }
 
     private fun provideHttpResponseInterceptor() = Interceptor { chain ->
+        Log.d(TAG_API_SERVICE, "provideHttpResponseInterceptor.....................")
         val request = chain.request()
-        var response = chain.proceed(request)
+        val response = chain.proceed(request)
         if (response.code == 403) {
         // todo check if access token has expired or is invalid
 
