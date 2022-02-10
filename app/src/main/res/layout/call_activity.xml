@@ -52,7 +52,9 @@
                 android:gravity="center"
                 android:numColumns="2"
                 android:scrollbars="vertical"
-                android:stretchMode="columnWidth" />
+                android:stretchMode="columnWidth">
+
+            </GridView>
 
             <FrameLayout
                 android:id="@+id/selfVideoViewWrapper"
@@ -143,9 +145,52 @@
         android:orientation="vertical">
 
         <LinearLayout
+            android:id="@+id/voteLinearLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
+            android:background="@android:color/transparent"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <br.com.simplepass.loadingbutton.customViews.CircularProgressButton
+                android:id="@+id/voteButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"
+                android:background="@color/nc_darkYellow"
+                android:ellipsize="marquee"
+                android:padding="5dp"
+                android:text="@string/tap_to_vote"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                />
+
+<!--            <com.facebook.drawee.view.SimpleDraweeView-->
+<!--                android:id="@+id/callControlRaiseHand11"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_gravity="center"-->
+<!--                android:layout_marginStart="10dp"-->
+<!--                android:layout_marginEnd="10dp"-->
+<!--                android:layout_weight="5"-->
+<!--                android:visibility="visible"-->
+<!--                app:backgroundImage="@color/call_buttons_background"-->
+<!--                app:placeholderImage="@drawable/ic_hand_off"-->
+<!--                app:roundAsCircle="true"-->
+<!--                tools:visibility="visible" />-->
+
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/requestsLinearLayout"
             android:layout_width="match_parent"
-            android:layout_height="147dp"
+            android:layout_height="100dp"
             android:animateLayoutChanges="true"
             android:background="@android:color/transparent"
             android:orientation="horizontal"

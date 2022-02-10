@@ -504,5 +504,6 @@
     <string name="nc_in_meeting">In Meeting</string>
     <string name="nc_invited">Invited</string>
     <string name="nc_meeting_ended_leaving">Meeting has ended</string>
+    <string name="tap_to_vote">Tap to Vote</string>
 
 </resources>
