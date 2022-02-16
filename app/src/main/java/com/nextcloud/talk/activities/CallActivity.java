@@ -20,6 +20,9 @@
 
 package com.nextcloud.talk.activities;
 
+import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG;
+import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+import java.util.Map;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -31,33 +34,43 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.bluelinelabs.logansquare.LoganSquare;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.nextcloud.talk.R;
+import com.nextcloud.talk.VoteSheetVote;
 import com.nextcloud.talk.adapters.ParticipantDisplayItem;
 import com.nextcloud.talk.adapters.ParticipantsAdapter;
 import com.nextcloud.talk.api.ApiService;
@@ -115,7 +128,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.joda.time.Instant;
-import org.joda.time.Interval;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.parceler.Parcel;
@@ -153,6 +166,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -161,6 +175,8 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 import autodagger.AutoInjector;
@@ -176,6 +192,7 @@ import me.zhanghai.android.effortlesspermissions.OpenAppDetailsDialogFragment;
 import okhttp3.Cache;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 
 @AutoInjector(NextcloudTalkApplication.class)
@@ -213,6 +230,9 @@ public class CallActivity extends CallBaseActivity {
     private CountDownTimer timeCounter;
 
     private boolean handRaised = false;
+
+    private Boolean userVerified = false;
+
 
     Timer timer;
 
@@ -311,13 +331,13 @@ public class CallActivity extends CallBaseActivity {
 
     private CallActivityBinding binding;
 
-//    private JSONObject speakJson = new JSONObject();
-//
-//    private JSONObject interveneJson = new JSONObject();
-
     private RequestToActionGenericResult speakResult;
 
     private RequestToActionGenericResult interveneResult;
+
+    private Executor executor;
+    private BiometricPrompt biometricPrompt;
+    private BiometricPrompt.PromptInfo promptInfo;
 
 //    private List<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
     private ArrayList<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
@@ -2850,6 +2870,31 @@ public class CallActivity extends CallBaseActivity {
             }
         });
 
+        // prepare fingerprint
+
+        bioAuthPrompt();
+
+        // open vote sheet
+        binding.voteButton.setOnClickListener(l ->{
+            Log.d(TAG, "Vote button clicked..");
+
+            final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+
+            View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_main, null);
+
+            bottomSheetDialog.setContentView(bottomSheetView);
+            bottomSheetDialog.show();
+
+            final Button fingerprintBtn = bottomSheetView.findViewById(R.id.fingerprintRequestBtn);
+            fingerprintBtn.setOnClickListener(v -> {
+                Log.d(TAG, "fingerprintBtn button clicked..");
+                biometricPrompt.authenticate(promptInfo);
+                bottomSheetDialog.dismiss();
+            });
+        });
+
+
+
         binding.callControlRaiseHand.setOnClickListener(l ->{
 
             handRaised = !handRaised;
@@ -3613,6 +3658,7 @@ public class CallActivity extends CallBaseActivity {
     private void showStaffControls(){
         //make raise hand visible
         binding.callControlRaiseHand.setVisibility(View.VISIBLE);
+        Log.d(TAG, "showStaffControls.............:");
     }
 
     private void showControls(){
@@ -3677,6 +3723,7 @@ public class CallActivity extends CallBaseActivity {
 
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            binding.voteLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
                 binding.timeLeftButton.setVisibility(View.GONE);
             }
@@ -3712,6 +3759,7 @@ public class CallActivity extends CallBaseActivity {
 
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            binding.voteLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
                 binding.timeLeftButton.setVisibility(View.GONE);
             }
@@ -3808,83 +3856,37 @@ public class CallActivity extends CallBaseActivity {
         // log duration and talking since
         Log.d(TAG, "Duration..: " + duration + " Talking since..: " + talkingSince);
 
+        // now
+        long nowTimestamp = System.currentTimeMillis()/1000;
+        Log.d(TAG, "Now timestamp..: " + nowTimestamp);
+        // parse nowTimestamp to int
+        Integer now = Integer.parseInt(Long.toString(nowTimestamp));
+
         // calculate time left
+        int timeLeft = duration - (now - talkingSince);
 
+        // log time left
+        Log.d(TAG, "Time left..: " + timeLeft);
 
-            // now to timestamp
-//        long nowTimestamp = Instant.now().toEpochMilli();
-//        Interval interval = new Interval(talkingSince, new Instant());
-//        long duration = interval.toDurationMillis();
-//        Log.d(TAG, "Duration..: " + duration);
-        Date now = new Date();
-        long nowTimestamp = now.getTime();
+        // formart time left to mm:ss
+        String timeLeftString = String.format("%02d:%02d",
+                        TimeUnit.SECONDS.toMinutes(timeLeft),
+                                TimeUnit.SECONDS.toSeconds(timeLeft) -
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.SECONDS.toMinutes(timeLeft))
+                            );
 
-        // difference between now and talking since
-        long duratio = nowTimestamp - talkingSince;
-        Log.d(TAG, "Duration..: " + duratio);
-
-        // convert talking since to date
-        Date date = new Date(talkingSince);
-        Log.d(TAG, "Date..: " + date);
-
-
-
-
-        Instant instant = Instant.ofEpochMilli(nowTimestamp) ;
-
-        Log.d(TAG, "Duration..: " + duration);
-
-            // log now timestamp
-                Log.d(TAG, "Now timestamp........: " + nowTimestamp);
-
-//            long diff = nowTimestamp - talkingSince;
-
-
-
-        Date since = new Date(talkingSince);
-        Date nowDate = new Date(nowTimestamp);
-
-        // log since and nowDate
-        Log.d(TAG, "Since..: " + since + " NowDate..: " + nowDate);
-
-        long diff = instant.getMillis() - talkingSince;
-
-        long diffSeconds = diff / 1000 % 60;
-        long diffMinutes = diff / (60 * 1000) % 60;
-        long diffHours = diff / (60 * 60 * 1000) % 24;
-        long diffDays = diff / (24 * 60 * 60 * 1000);
-
-        System.out.print(diffDays + " days, ");
-        System.out.print(diffHours + " hours, ");
-        System.out.print(diffMinutes + " minutes, ");
-        System.out.print(diffSeconds + " seconds.");
-
-            Log.d(TAG, "Diff........: " + diff);
-
-        Log.d(TAG, "Diff.Time.......: " + diffHours+":"+diffMinutes+":"+diffSeconds);
-
-
-        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-        String timeLeftString = formatter.format(diff);
 
         Log.d(TAG, "Time String..: " + timeLeftString);
 
-            long theMinutes = duration - diff;
 
-                Log.d(TAG, "Time left..: " + theMinutes);
+//            binding.timeLeftButton.setText(timeLeftString);
 
-            Date timeLeft = new Date(theMinutes);
-
-                Log.d(TAG, "Now date..: " + timeLeft);
-
-
-
-            if(theMinutes>0){
+            if(timeLeft>0){
                 binding.timeLeftButton.setText(timeLeftString);
 
-                if(theMinutes > 60){
+                if(timeLeft > 60){
                     binding.timeLeftButton.setBackgroundColor(Color.GREEN);
-                }else if(theMinutes < 30){
+                }else if(timeLeft < 30){
                     binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
                         "#" + Integer.toHexString (getResources().getColor(R.color.kikao_danger)))));
                 }else{
@@ -3893,122 +3895,166 @@ public class CallActivity extends CallBaseActivity {
                 }
             }
 
-
-//        Long durationTimestamp = duration * 1000;
-//        Long talkingSinceTimestamp = talkingSince * 1000;
-//        Long timeLeft = durationTimestamp - (nowTimestamp - talkingSinceTimestamp);
-//        Long timeLeft = duration * 1000 - (nowTimestamp - talkingSince * 1000);
-
-
-//        TimeUnit.NANOSECONDS
-//             Long Timestamp = 1633304782;
-//        Date timeD = new Date(Timestamp * 1000);
-//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-//
-//        String Time = sdf.format(timeD);
-
-//RESULT this code convert 1633304782 to 05:46:33
-
-//        long diff = today - talkingSince;
-//        double theMinutes = duration - diff;
-//        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-//    [dateFormatter setDateFormat:@"mm:ss"];
-//
-//        NSDate *epochNSDate = [[NSDate alloc] initWithTimeIntervalSince1970:theMinutes];
-//
-////    NSLog(@"epochNSDate.....: %@", epochNSDate);
-//
-//
-//        NSString *time = [dateFormatter stringFromDate:epochNSDate];
-////    NSLog (@"Time:- %@", time);
-//
-//
-//        if(theMinutes>0){
-//        [_timerButton setTitle:time forState: UIControlStateNormal];
-//
-//            if(theMinutes > 60){
-//                _timerButton.backgroundColor = [UIColor systemGreenColor];
-//            }else if(theMinutes < 30){
-//                _timerButton.backgroundColor = [UIColor systemRedColor];
-//            }else{
-//                _timerButton.backgroundColor = [UIColor systemOrangeColor];
-//            }
-//        }
-
-
-
     }
 
-    private void initTimer(Integer durationInMinutes){
-        String durationInMinutesStr = String.format("%02d:%02d",
-                                                    TimeUnit.MILLISECONDS.toMinutes(durationInMinutes*60000),
-                                                    TimeUnit.MILLISECONDS.toSeconds(durationInMinutes*60000) -
-                                                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(durationInMinutes*60000))
-                                                   );
-        if (binding.timeLeftButton!=null) {
-            binding.timeLeftButton.setText(durationInMinutesStr);
-        }
-        new CountDownTimer(durationInMinutes*60000, 1000) {
-            public void onTick(long millisUntilFinished) {
-                String allocatedSpeakTimeStr = String.format("%02d:%02d",
-                                                             TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished),
-                                                             TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) -
-                                                                 TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished))
-                                                            );
-                if (binding.timeLeftButton!=null) {
-                    binding.timeLeftButton.setText(allocatedSpeakTimeStr);
-                }
+    // function to prompt user for fingerprint auth
+    private void bioAuthPrompt() {
+        executor = ContextCompat.getMainExecutor(this);
+        biometricPrompt = new BiometricPrompt(this,
+            executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode,
+                                              @NonNull CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                Toast.makeText(getApplicationContext(), "Authentication failed",
+                        Toast.LENGTH_SHORT)
+                    .show();
+            }
 
-                if (millisUntilFinished/1000 < 30) {
-                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_danger)))));
-                    Animation anim = new AlphaAnimation(0.0f, 1.0f);
-                    anim.setDuration(500); //You can manage the blinking time with this parameter
-                    anim.setStartOffset(20);
-                    anim.setRepeatMode(Animation.REVERSE);
-                    anim.setRepeatCount(Animation.INFINITE);
-                    binding.timeLeftButton.startAnimation(anim);
-                }else if (millisUntilFinished/1000 < 60) {
-                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_warning)))));
-                }
+            @Override
+            public void onAuthenticationSucceeded(
+                @NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                userVerified = true;
+
+                // update the bottomsheet
+                Toast.makeText(getApplicationContext(),
+                    "Authentication succeeded!", Toast.LENGTH_SHORT).show();
+
+                final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+                View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_otp, null);
+                bottomSheetDialog.setContentView(bottomSheetView);
+                bottomSheetDialog.show();
+
+                // log user verified
+                Log.d(TAG, "User verified..........");
+
+
+                Log.d(TAG, "bottomOtpSheetDialog dismissed..........");
+
+
+                final Button verifyOtpBtn = bottomSheetView.findViewById(R.id.veriftyOtpBtn);
+                verifyOtpBtn.setOnClickListener(v -> {
+                    // show bottom sheet to vote
+                    final BottomSheetDialog voteSheetDialog = new BottomSheetDialog(CallActivity.this);
+                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
+                    voteSheetDialog.setContentView(voteSheetView);
+                    voteSheetDialog.show();
+                    // dismiss the sheet of otp
+                    bottomSheetDialog.dismiss();
+                });
+
 
 
             }
-            public void onFinish() {
-                showPlenaryControlsDisabled();
-                binding.timeLeftButton.setVisibility(View.GONE);
 
-//                binding.timeLeftButton.setText("Done!");
-
-                if(interveneApproved){
-                    binding.requestToInterveneButton.setText(R.string.kikao_request_to_intervene);
-                    binding.requestToInterveneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
-                }
-
-                if(speakerApproved){
-                    binding.requestToSpeakButton.setText(R.string.kikao_request_to_speak);
-                    binding.requestToSpeakButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
-                }
-
-//                binding.requestToSpeakButton.setText(R.string.kikao_request_to_speak);
-//                binding.requestToSpeakButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-//                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
-
-//                binding.requestToInterveneButton.setText(R.string.kikao_request_to_intervene);
-//                binding.requestToInterveneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-//                    "#" + Integer.toHexString (getResources().getColor(R.color.colorPrimary)))));
-//                showPlenaryControlsDisabled();
-                //todo make API call that speaker time is finished
+            @Override
+            public void onAuthenticationFailed() {
+                super.onAuthenticationFailed();
+                Toast.makeText(getApplicationContext(), "Authentication failed",
+                        Toast.LENGTH_SHORT)
+                    .show();
             }
-        };
+        });
+
+        promptInfo = new BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric voter verification")
+            .setSubtitle("Using your biometric credential")
+            .setNegativeButtonText("Cancel")
+            .build();
     }
 
+    private void listenFetchOpenVotes(){
+        apiService.fetchVote(credentials,roomToken)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
 
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
 
+                    Log.d(TAG, "Listening to votes..........");
 
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "onFetchVoteResponse....: " + response);
+
+                    if (response != null) {
+                        // parse response as JSON
+                        try {
+                            JSONObject jsonObject = new JSONObject(response);
+                            JSONArray jsonArray = jsonObject.getJSONArray("vote");
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                JSONObject vote = jsonArray.getJSONObject(i);
+                                String voteId = vote.getString("id");
+                                String expire = vote.getString("expire");
+                                String meetingId = vote.getString("meeting_id");
+                                String notifMins = vote.getString("notif_mins");
+                                String openingTime = vote.getString("opening_time");
+
+                                // log everything
+                                Log.d(TAG, "Vote id: " + voteId);
+                                Log.d(TAG, "Expire: " + expire);
+                                Log.d(TAG, "Meeting id: " + meetingId);
+                                Log.d(TAG, "Notif mins: " + notifMins);
+
+                                // parse expire to int
+                                int expireInt = Integer.parseInt(expire);
+                                // parse opening time to int
+                                int openingTimeInt = Integer.parseInt(openingTime);
+                                // parse notif mins to int
+                                int notifMinsInt = Integer.parseInt(notifMins);
+                                // if expireInt is greater than today
+                                // get current time
+                                Calendar calendar = Calendar.getInstance();
+                                int currentTime = calendar.get(Calendar.HOUR_OF_DAY)*60+calendar.get(Calendar.MINUTE);
+                                // log current time
+                                Log.d(TAG, "Current time...: " + currentTime);
+                                if(meetingId.equals(roomToken)){
+                                    if(expireInt>0){
+                                        // if expireInt is greater than current time
+                                        if(expireInt>currentTime){
+                                            // show vote button
+                                            binding.voteButton.setVisibility(View.VISIBLE);
+                                        }
+                                    }else{
+                                        // if opening time is greater than current time
+                                        if(openingTimeInt>currentTime){
+                                            // show vote button
+                                            binding.voteButton.setVisibility(View.VISIBLE);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "onErrorFetchVotes: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
 
     private void kikaoListener(){
         Log.d(TAG, "Calling kikao");
@@ -4019,10 +4065,14 @@ public class CallActivity extends CallBaseActivity {
                 // update network call
                 updateStuffNetworkCall();
                 // update UI
-                runOnUiThread(() -> {
-                    // Stuff that updates the UI
-                    listenResponses();
-                });
+                if(interveneResult != null || speakResult != null) {
+                    runOnUiThread(() -> {
+                        // Stuff that updates the UI
+                        listenResponses();
+                    });
+                }
+                // update vote status
+                listenFetchOpenVotes();
             }
         }, 0, 1000);//put here time 1000 milliseconds=1 second
 

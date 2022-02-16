@@ -150,6 +150,9 @@ android {
     buildFeatures {
         viewBinding true
     }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
 }
 
 ext {
@@ -187,6 +190,8 @@ dependencies {
     implementation "androidx.work:work-rxjava2:${workVersion}"
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.3.3'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.5'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.3.5'
 //    implementation 'androidx.wear.tiles:tiles-material:+'
     androidTestImplementation "androidx.work:work-testing:${workVersion}"
     implementation 'com.google.android:flexbox:2.0.1'

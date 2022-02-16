@@ -4,6 +4,7 @@ package com.nextcloud.talk.api
 import com.nextcloud.talk.models.kikaoutitilies.RequestToActionGenericResult
 import io.reactivex.Observable
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -45,12 +46,12 @@ interface ApiService {
 
     // VOTE //
     // fetch votes GET
-    @GET("index.php/apps/polls/api/v1.0/fetchOpenVote")
-    fun fetchVote(@Header("Authorization") authorization: String?,  @Query("token") token: String): Observable<List<RequestToActionGenericResult>?>?
+    @GET("index.php/apps/polls/api/v1.0/fetchOpenVote/{token}")
+    fun fetchVote(@Header("Authorization") authorization: String?,  @Path("token") token: String): Observable<ResponseBody?>?
 
     // fetch polls GET
     @GET("index.php/apps/polls/api/v1.0/polls")
-    fun getPolls(@Header("Authorization") authorization: String?): Observable<List<RequestToActionGenericResult>?>?
+    fun getPolls(@Header("Authorization") authorization: String?): Observable<ResponseBody>?
 
     // fetch polls option
     @GET("index.php/apps/polls/api/v1.0/poll/{id}/options")

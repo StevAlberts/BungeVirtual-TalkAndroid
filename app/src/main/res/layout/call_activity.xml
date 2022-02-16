@@ -171,7 +171,7 @@
                 android:textStyle="bold"
                 />
 
-<!--            <com.facebook.drawee.view.SimpleDraweeView-->
+            <!--            <com.facebook.drawee.view.SimpleDraweeView-->
 <!--                android:id="@+id/callControlRaiseHand11"-->
 <!--                android:layout_width="0dp"-->
 <!--                android:layout_height="match_parent"-->
@@ -234,7 +234,8 @@
                 android:text="@string/kikao_time_left"
                 android:textColor="@color/white"
                 android:visibility="gone"
-                tools:visibility="visible" />
+                tools:visibility="visible"
+                app:roundAsCircle="true"/>
 
             <View
                 android:layout_width="0dp"

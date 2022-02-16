@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="700dp"
+        android:layout_centerVertical="true"
+        android:layout_margin="2dp">
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp"
+                android:layout_centerVertical="true"
+                android:id="@+id/main_vote">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Time left to verify"
+                    android:textSize="20sp"
+                    android:textColor="@color/black"
+                    android:textAlignment="center"
+                    android:padding="2dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="5:20"
+                    android:textSize="20sp"
+                    android:textColor="@color/black"
+                    android:textAlignment="center"
+                    android:padding="10dp" />
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp"/>
+
+
+
+
+                <Button
+                    android:id="@+id/fingerprintRequestBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Click to request OTP"
+                    android:textSize="20sp"
+                    android:textColor="@color/white"
+                    android:background="@color/nc_darkYellow"
+                    android:padding="10dp"
+                    />
+
+<!--                <RadioGroup-->
+<!--                    android:id="@+id/radioGroup"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:layout_marginTop="172dp"-->
+<!--                    android:orientation="vertical">-->
+
+
+<!--                    <RadioButton-->
+<!--                        android:id="@+id/voteYes"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:text="YES"-->
+<!--                        android:onClick="radioButtonhandler"/>-->
+
+<!--                    <RadioButton-->
+<!--                        android:id="@+id/voteNo"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:text="NO"-->
+<!--                        android:onClick="radioButtonhandler"/>-->
+
+<!--                    <RadioButton-->
+<!--                        android:id="@+id/voteMaybe"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:text="MAYBE"-->
+<!--                        android:onClick="radioButtonhandler"/>-->
+<!--                </RadioGroup>-->
+            </LinearLayout>
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
