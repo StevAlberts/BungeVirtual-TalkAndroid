@@ -20,6 +20,7 @@
             android:id="@+id/main_vote">
 
             <TextView
+                android:id="@+id/voteTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Time left to verify"
@@ -29,6 +30,7 @@
                 android:padding="2dp" />
 
             <TextView
+                android:id="@+id/voteSubtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="5:20"
@@ -51,7 +53,8 @@
                     android:layout_height="wrap_content"
                     android:text="YES"
                     android:textStyle="bold"
-                    android:onClick="radioButtonhandler"/>
+                    android:padding="10dp"
+                    android:onClick="onRadioButtonClicked"/>
 
                 <RadioButton
                     android:id="@+id/voteNo"
@@ -59,19 +62,22 @@
                     android:layout_height="wrap_content"
                     android:text="NO"
                     android:textStyle="bold"
-                    android:onClick="radioButtonhandler"/>
+                    android:padding="10dp"
+                    android:onClick="onRadioButtonClicked"/>
 
                 <RadioButton
-                    android:id="@+id/voteMaybe"
+                    android:id="@+id/voteAbstain"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textStyle="bold"
-                    android:text="MAYBE"
-                    android:onClick="radioButtonhandler"/>
+                    android:text="ABSTAIN"
+                    android:padding="10dp"
+                    android:onClick="onRadioButtonClicked"/>
 
             </RadioGroup>
 
             <TextView
+                android:id="@+id/voteResultsText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Members who have voted: 1"
@@ -81,6 +87,7 @@
                 android:padding="2dp" />
 
             <TextView
+                android:id="@+id/voteSharesText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Total verified voters: 1"
