@@ -63,6 +63,7 @@ import android.view.animation.Animation;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -215,23 +216,17 @@ public class CallActivity extends CallBaseActivity {
 
     ApiService apiService;
 
-    private Integer allocatedSpeakTime = 0;
+    private boolean interveneApproved = false;
 
-    private Integer talkingSince = 0;
-
-    private Boolean speakTimerStarted = false;
-
-    private Boolean speakerhasUnmuted = false;
-
-    private Boolean interveneApproved = false;
-
-    private Boolean speakerApproved = false;
-
-    private CountDownTimer timeCounter;
+    private boolean speakerApproved = false;
 
     private boolean handRaised = false;
 
-    private Boolean userVerified = false;
+    private boolean userVerified = false;
+
+    private final boolean otpVerified = false;
+
+    private String timeLeftVote = "";
 
 
     Timer timer;
@@ -245,6 +240,11 @@ public class CallActivity extends CallBaseActivity {
     public static final String TAG = "CallActivity";
 
     private static CallActivity mInstanceActivity;
+
+    private int pollId;
+
+    private int otpExpire;
+
     public static CallActivity getmInstanceActivity() {
         return mInstanceActivity;
     }
@@ -3486,174 +3486,7 @@ public class CallActivity extends CallBaseActivity {
                     R.color.colorPrimary));
     }
 
-    private void listenToRequests(){
-        RequestToActionGenericResult requestToActionGenericResult = new RequestToActionGenericResult();
 
-        //todo listen to requests
-        if(requestResultList.size()>0){
-        for (RequestToActionGenericResult item : requestResultList) {
-            // assign request to action to item
-
-            Log.d(TAG, "listenToRequests lists.........: "+ requestResultList.size());
-
-            if (item.getUserId().equalsIgnoreCase(conversationUser.getUserId())) {
-                requestToActionGenericResult = item;
-
-                allocatedSpeakTime = requestToActionGenericResult.getDuration() / 60; //to get it in minutes
-                talkingSince = requestToActionGenericResult.getTalkingSince();
-
-                // log allocatedSpeakTime
-                Log.d(TAG, "allocatedSpeakTime listen.........: " + allocatedSpeakTime);
-                Log.d(TAG, "talkingSince listen.........: " + talkingSince);
-
-                //if request to speak
-                if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_SPEAK) {
-                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                    SharedPreferences.Editor editor = sharedPref.edit();
-                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
-                        requestToActionGenericResult.getId());
-                    editor.apply();
-
-                    //permission granted
-                    if (requestToActionGenericResult.getApproved()) {
-                        speakerApproved = requestToActionGenericResult.getApproved();
-
-                        // minutes
-                        if (requestToActionGenericResult.getPaused()) {
-                            //user paused
-                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
-
-                        } else if (requestToActionGenericResult.getCanceled()) {
-                            binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                R.color.colorPrimary));
-                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                        } else {
-                            binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
-                            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                R.color.kikao_danger));
-                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
-                        }
-                    }else if (requestToActionGenericResult.getCanceled()) {
-                        binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                            R.color.colorPrimary));
-                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                    }
-//                    else {
-//                        binding.requestToSpeakButton.setText(getResources().getString(R.string.action_cancel));
-//                        binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-//                            R.color.kikao_danger));
-//                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-//                    }
-                }
-
-                // if request to intervene
-                if (requestToActionGenericResult.getActivityType() == KikaoUtilitiesConstants.ACTION_REQUEST_TO_INTERVENE) {
-                    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                    SharedPreferences.Editor editor = sharedPref.edit();
-                    editor.putInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
-                        requestToActionGenericResult.getId());
-                    editor.apply();
-                    //permission granted
-                    if (requestToActionGenericResult.getApproved()) {
-                        interveneApproved = requestToActionGenericResult.getApproved();
-
-                        // minutes
-                        if (requestToActionGenericResult.getPaused()) {
-                            //user paused
-                            manageControls(KikaoUtilitiesConstants.ACTION_PAUSE_USER);
-
-                        } else if (requestToActionGenericResult.getCanceled()) {
-                            binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                R.color.colorPrimary));
-                            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                        } else {
-                            binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
-                            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                                R.color.kikao_danger));
-                            manageControls(KikaoUtilitiesConstants.ACTION_RESUME_USER);
-                        }
-                    } else if (requestToActionGenericResult.getCanceled()) {
-                        binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                            R.color.colorPrimary));
-                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-
-                    }
-//                    else {
-//                        binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
-//                        binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-//                            R.color.kikao_danger));
-//                        manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-//                    }
-                }
-
-                break;
-            }
-        }
-
-        }
-
-
-//        else{
-//            Log.d(TAG, "onEvent: No active requests 0");
-//            binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-//            binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-//                R.color.colorPrimary));
-//
-//            binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
-//            binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-//                R.color.colorPrimary));
-//
-//            manageControls(KikaoUtilitiesConstants.ACTION_CANCEL_USER);
-//        }
-    }
-
-    private void manageControls(String action){
-        Log.d(TAG, "Speaker unmuted: "+speakerhasUnmuted);
-        Log.d(TAG, "Action called: "+action);
-//        if (action.equals(KikaoUtilitiesConstants.ACTION_NONE)){
-//
-//        }else
-        if(action.equals(KikaoUtilitiesConstants.ACTION_PAUSE_USER)){
-            // to disable controls when user is paused
-            if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
-                showCommitteeControlsDisabled();
-            } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                showPlenaryControlsDisabled();
-            }
-
-            // pause timer during plenary_call
-            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-//                pauseTimer(true);
-            }
-        }else if(action.equals(KikaoUtilitiesConstants.ACTION_RESUME_USER)){
-            //todo unpause timer logic or add another Constant -> ACTION_UNPAUSE_USER
-            //if microphone is already visible then no need
-            if (binding.microphoneButton.getVisibility() != View.VISIBLE) {
-                if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
-                    showCommitteeControlsEnabled();
-                } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                    showPlenaryControlsEnabled();
-                    // unpause timer during plenary_call
-                    if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-//                        pauseTimer(false);
-                    }
-                }
-            }
-        }else if(action.equals(KikaoUtilitiesConstants.ACTION_CANCEL_USER)){
-            if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)) {
-                showCommitteeControlsDisabled();
-            } else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
-                showPlenaryControlsDisabled();
-            }
-        }
-    }
 
     private void showStaffControls(){
         //make raise hand visible
@@ -3702,10 +3535,6 @@ public class CallActivity extends CallBaseActivity {
         }else{
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             binding.timeLeftButton.setVisibility(View.GONE);
-            //cancel timer
-            if(timeCounter != null){
-                timeCounter.cancel();
-            }
         }
     }
 
@@ -3765,9 +3594,6 @@ public class CallActivity extends CallBaseActivity {
             }
         }
 
-        speakTimerStarted = false;
-        speakerhasUnmuted = false;
-
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
         binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
 
@@ -3775,12 +3601,6 @@ public class CallActivity extends CallBaseActivity {
         binding.cameraButton.setVisibility(View.GONE);
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
-
-        //cancel timer
-
-//        if(countDownTimer!=null){
-//            countDownTimer.cancel();
-//        }
 
     }
 
@@ -3878,9 +3698,6 @@ public class CallActivity extends CallBaseActivity {
 
         Log.d(TAG, "Time String..: " + timeLeftString);
 
-
-//            binding.timeLeftButton.setText(timeLeftString);
-
             if(timeLeft>0){
                 binding.timeLeftButton.setText(timeLeftString);
 
@@ -3921,6 +3738,10 @@ public class CallActivity extends CallBaseActivity {
                 Toast.makeText(getApplicationContext(),
                     "Authentication succeeded!", Toast.LENGTH_SHORT).show();
 
+                // send otp
+                sendOtp();
+
+
                 final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
                 View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_otp, null);
                 bottomSheetDialog.setContentView(bottomSheetView);
@@ -3934,14 +3755,13 @@ public class CallActivity extends CallBaseActivity {
 
 
                 final Button verifyOtpBtn = bottomSheetView.findViewById(R.id.veriftyOtpBtn);
+                final EditText otpText = bottomSheetView.findViewById(R.id.textOtp);
+
                 verifyOtpBtn.setOnClickListener(v -> {
-                    // show bottom sheet to vote
-                    final BottomSheetDialog voteSheetDialog = new BottomSheetDialog(CallActivity.this);
-                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
-                    voteSheetDialog.setContentView(voteSheetView);
-                    voteSheetDialog.show();
                     // dismiss the sheet of otp
                     bottomSheetDialog.dismiss();
+                    Log.d(TAG, "otpText: " + otpText.getText().toString());
+                    verifyOtp(otpText.getText().toString());
                 });
 
 
@@ -3962,6 +3782,115 @@ public class CallActivity extends CallBaseActivity {
             .setSubtitle("Using your biometric credential")
             .setNegativeButtonText("Cancel")
             .build();
+    }
+
+    private void sendOtp(){
+
+        JSONObject json = new JSONObject();
+        try {
+            json.put("userId", conversationUser.getUserId());
+            json.put("pollId", pollId);
+            json.put("otpExpire", otpExpire);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        apiService.sendOtp(credentials,RequestBody.create(MediaType.parse("application/json"), json.toString()))
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "sendOtp..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "sendOtpResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "sendOtpError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void verifyOtp(String enteredOtp){
+
+        JSONObject json = new JSONObject();
+        try {
+            json.put("userId", conversationUser.getUserId());
+            json.put("pollId", pollId);
+            json.put("enteredOtp", enteredOtp);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        apiService.verifyOtp(credentials,RequestBody.create(MediaType.parse("application/json"), json.toString()))
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "verifyOtp..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    // show bottom sheet to vote
+                    final BottomSheetDialog voteSheetDialog = new BottomSheetDialog(CallActivity.this);
+                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
+                    voteSheetDialog.setContentView(voteSheetView);
+                    voteSheetDialog.show();
+
+                    // get polls options
+//                    getPollsOptions();
+
+                    Log.d(TAG, "verifyOtpResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "verifyOtpError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
     }
 
     private void listenFetchOpenVotes(){
@@ -3993,14 +3922,28 @@ public class CallActivity extends CallBaseActivity {
                         // parse response as JSON
                         try {
                             JSONObject jsonObject = new JSONObject(response);
-                            JSONArray jsonArray = jsonObject.getJSONArray("vote");
-                            for (int i = 0; i < jsonArray.length(); i++) {
-                                JSONObject vote = jsonArray.getJSONObject(i);
-                                String voteId = vote.getString("id");
-                                String expire = vote.getString("expire");
-                                String meetingId = vote.getString("meeting_id");
-                                String notifMins = vote.getString("notif_mins");
-                                String openingTime = vote.getString("opening_time");
+
+                            Log.d(TAG, "onFetchVoteResponse....: " + jsonObject.getString("vote"));
+
+                            // get the vote
+                            String vote = jsonObject.getString("vote");
+
+                            // get id inside vote
+                            JSONObject voteObject = new JSONObject(vote);
+                            String voteId = voteObject.getString("id");
+                            String expire = voteObject.getString("expire");
+                            String meetingId = voteObject.getString("meeting_id");
+                            String notifMins = voteObject.getString("notif_mins");
+                            String openingTime = voteObject.getString("opening_time");
+
+                            // log vote id
+                            Log.d(TAG, "voteId....: " + voteId);
+
+                            // set poll id
+                            pollId = Integer.parseInt(voteId);
+
+                            // set expire time
+                            otpExpire = Integer.parseInt(expire);
 
                                 // log everything
                                 Log.d(TAG, "Vote id: " + voteId);
@@ -4021,20 +3964,29 @@ public class CallActivity extends CallBaseActivity {
                                 // log current time
                                 Log.d(TAG, "Current time...: " + currentTime);
                                 if(meetingId.equals(roomToken)){
+                                    startTimerLeftVote(openingTimeInt);
                                     if(expireInt>0){
                                         // if expireInt is greater than current time
                                         if(expireInt>currentTime){
-                                            // show vote button
-                                            binding.voteButton.setVisibility(View.VISIBLE);
+                                            Log.d(TAG, "Show vote btn expire....:");
+                                            // unshow vote button
+                                            binding.voteButton.setVisibility(View.GONE);
                                         }
                                     }else{
                                         // if opening time is greater than current time
                                         if(openingTimeInt>currentTime){
+                                            Log.d(TAG, "Show vote btn open....:");
                                             // show vote button
                                             binding.voteButton.setVisibility(View.VISIBLE);
+                                            // listen to polls
+                                            listenToPolls();
+                                            // listen to shares
+                                            listenToShares();
+                                            // get vote results
+                                            getVoteResults();
                                         }
                                     }
-                                }
+
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -4056,6 +4008,272 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
+    private void listenToPolls(){
+        apiService.getPolls(credentials)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "listenToPolls..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "listenToPollsResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "listenToPollsError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void listenToShares(){
+        apiService.getShares(credentials,pollId)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "listenToShares..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "listenToSharesResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    Log.d(TAG, "listenToSharesError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void getPollsOptions(){
+        apiService.getPollsOptions(credentials,pollId)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "getPollsOptions..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "getPollsOptionsResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "getPollsOptionsError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void getVoteResults(){
+        apiService.getVoteResults(credentials,pollId)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "getVoteResults..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "getVoteResultsResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "getVoteResultsError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void startTimerLeftVote(Integer openingTime) {
+        Log.d(TAG, "Start timer count......");
+
+        // now
+        long nowTimestamp = System.currentTimeMillis() / 1000;
+        Log.d(TAG, "Now timestamp..: " + nowTimestamp);
+        // parse nowTimestamp to int
+        Integer now = Integer.parseInt(Long.toString(nowTimestamp));
+
+        // calculate time left
+        int timeLeft = openingTime - now;
+
+        // log time left
+        Log.d(TAG, "Time left..: " + timeLeft);
+
+        // formart time left to mm:ss
+        String timeLeftString = String.format("%02d:%02d",
+            TimeUnit.SECONDS.toMinutes(timeLeft),
+            TimeUnit.SECONDS.toSeconds(timeLeft) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.SECONDS.toMinutes(timeLeft))
+        );
+
+
+        Log.d(TAG, "Time String..: " + timeLeftString);
+
+        if (timeLeft > 0) {
+            // set time left to textview
+            timeLeftVote = timeLeftString;
+            runOnUiThread(() -> {
+                // Stuff that updates the UI
+            });
+        }
+    }
+
+    public void onRadioButtonClicked(View view) {
+        // Is the button now checked?
+        boolean checked = ((RadioButton) view).isChecked();
+
+        // Check which radio button was clicked
+        switch(view.getId()) {
+            case R.id.voteYes:
+                if (checked){
+                    Log.d(TAG,"voteYes.............:" + view.getId());
+                }
+                break;
+            case R.id.voteNo:
+                if (checked){
+                    Log.d(TAG,"voteNo.............");
+                }
+                break;
+            case R.id.voteAbstain:
+                if (checked){
+                    Log.d(TAG,"voteAbstain.............");
+                }
+                break;
+        }
+    }
+
+    private void setVote(int optionId){
+        JSONObject json = new JSONObject();
+        try {
+            json.put("optionId", optionId);
+            json.put("setTo", "yes");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        apiService.setVote(credentials,RequestBody.create(MediaType.parse("application/json"), json.toString()))
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "Listening to polls..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "onPollsResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "pollsError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+
     private void kikaoListener(){
         Log.d(TAG, "Calling kikao");
         timer = new Timer();
@@ -4073,6 +4291,12 @@ public class CallActivity extends CallBaseActivity {
                 }
                 // update vote status
                 listenFetchOpenVotes();
+                // listen to polls
+//                listenToPolls();
+                // listen to shares
+//                if(pollId != null) {
+//                    listenToShares();
+//                }
             }
         }, 0, 1000);//put here time 1000 milliseconds=1 second
 

@@ -3,6 +3,7 @@ package com.nextcloud.talk.api
 
 import com.nextcloud.talk.models.kikaoutitilies.RequestToActionGenericResult
 import io.reactivex.Observable
+import io.reactivex.Observer
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.http.Body
@@ -55,7 +56,7 @@ interface ApiService {
 
     // fetch polls option
     @GET("index.php/apps/polls/api/v1.0/poll/{id}/options")
-    fun getPollsOptions(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<List<RequestToActionGenericResult>?>?
+    fun getPollsOptions(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<ResponseBody?>?
 
     // sendOtpSmsForUser
 //    NSDictionary *parameters = @{
@@ -64,7 +65,7 @@ interface ApiService {
 //        @"otpExpire" : otpExpire
 //    };
     @POST("index.php/apps/polls/api/v1.0/sendOtpSms")
-    fun sendOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
+    fun sendOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<ResponseBody?>?
 
     // verifyOtp
 //    NSDictionary *parameters = @{
@@ -73,24 +74,23 @@ interface ApiService {
 //        @"pollId": pollId
 //    };
     @POST("index.php/apps/polls/api/v1.0/verifyOtp")
-    fun verifyOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
+    fun verifyOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<ResponseBody?>?
 
     // setVote
-    @PUT("index.php/apps/polls/vote")
 //    NSDictionary *parameters = @{
 //        @"optionId" : optionId,
 //        @"setTo" : option
 //    };
-    fun setVote(@Header("Authorization") authorization: String?, @Path("id") id:
-    Int, @Query("token") token:String, @Body body: RequestBody?): Observable<RequestToActionGenericResult?>?
+    @PUT("index.php/apps/polls/vote")
+    fun setVote(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<ResponseBody?>?
 
     // getVotes
     @GET("index.php/apps/polls/api/v1.0/poll/{id}/votes")
-    fun getVotes(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<List<RequestToActionGenericResult>?>?
+    fun getVoteResults(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<ResponseBody?>?
 
     // getShares
     @GET("index.php/apps/polls/api/v1.0/poll/{id}/shares")
-    fun getShares(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<List<RequestToActionGenericResult>?>?
+    fun getShares(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<ResponseBody?>?
 
     // getComments
 
