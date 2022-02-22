@@ -59,20 +59,10 @@ interface ApiService {
     fun getPollsOptions(@Header("Authorization") authorization: String?, @Path("id") pollId: Int): Observable<ResponseBody?>?
 
     // sendOtpSmsForUser
-//    NSDictionary *parameters = @{
-//        @"userId" : account.userId,
-//        @"pollId" : pollId,
-//        @"otpExpire" : otpExpire
-//    };
     @POST("index.php/apps/polls/api/v1.0/sendOtpSms")
     fun sendOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<ResponseBody?>?
 
     // verifyOtp
-//    NSDictionary *parameters = @{
-//        @"userId" : account.userId,
-//        @"enteredOtp" : otpCode,
-//        @"pollId": pollId
-//    };
     @POST("index.php/apps/polls/api/v1.0/verifyOtp")
     fun verifyOtp(@Header("Authorization") authorization: String?, @Body body: RequestBody?): Observable<ResponseBody?>?
 

@@ -583,6 +583,8 @@ public class Conversation {
         ROOM_SYSTEM,
         ROOM_PLENARY_CALL,
         ROOM_COMMITTEE_CALL,
+        ROOM_PLENARY_PUBLIC_CALL,
+        ROOM_COMMITTEE_PUBLIC_CALL,
     }
 
 }

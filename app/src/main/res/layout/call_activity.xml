@@ -171,6 +171,7 @@
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
                 android:textStyle="bold"
+                android:visibility="gone"
                 />
 
             <!--            <com.facebook.drawee.view.SimpleDraweeView-->

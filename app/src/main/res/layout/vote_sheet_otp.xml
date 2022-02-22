@@ -19,23 +19,7 @@
             android:layout_centerVertical="true"
             android:id="@+id/main_vote">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Time left to verify"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="2dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="5:20"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="10dp" />
+            <include layout="@layout/vote_header_view"/>
 
             <Space
                 android:layout_width="match_parent"
@@ -47,7 +31,9 @@
                 android:layout_height="match_parent"
                 android:layout_marginTop="10dp"
                 android:padding="10dp"
-                android:hint="Enter OTP"
+                android:hint="Enter OTP code"
+                android:inputType="number"
+                android:maxLines="1"
                 android:visibility="visible"
                 />
 
@@ -66,6 +52,14 @@
                 android:padding="10dp"
                 android:visibility="visible"
                 />
+
+            <ProgressBar
+                android:id="@+id/progressBarOtp"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:visibility="gone"/>
 
 
         </LinearLayout>
