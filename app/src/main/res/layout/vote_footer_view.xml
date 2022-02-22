@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:layout_centerVertical="true"
+            android:id="@+id/main_vote">
+
+            <TextView
+                android:id="@+id/voteResultsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Members who have voted: 1"
+                android:textSize="20sp"
+                android:textColor="@color/black"
+                android:textAlignment="center"
+                android:padding="2dp" />
+
+            <TextView
+                android:id="@+id/voteSharesText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Total verified voters: 1"
+                android:layout_marginTop="8dp"
+                android:textSize="20sp"
+                android:textColor="@color/black"
+                android:textAlignment="center"
+                android:padding="2dp" />
+
+            <!--            <include layout="@layout/vote_sheet_otp"/>-->
+
+
+        </LinearLayout>
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>

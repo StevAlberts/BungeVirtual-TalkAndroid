@@ -19,27 +19,11 @@
                 android:layout_centerVertical="true"
                 android:id="@+id/main_vote">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Time left to verify"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textAlignment="center"
-                    android:padding="2dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="5:20"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textAlignment="center"
-                    android:padding="10dp" />
+                <include layout="@layout/vote_header_view" />
 
                 <Space
                     android:layout_width="match_parent"
-                    android:layout_height="10dp"/>
+                    android:layout_height="14dp"/>
 
 
 

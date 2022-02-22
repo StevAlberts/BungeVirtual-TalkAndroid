@@ -80,6 +80,12 @@
         tools:ignore="UnusedAttribute"
         tools:replace="label, icon, theme, name, allowBackup">
         <activity
+            android:name=".VoteFooterViewActivity"
+            android:exported="false" />
+        <activity
+            android:name=".VoteHeaderViewActivity"
+            android:exported="false" />
+        <activity
             android:name=".VoteSheetVote"
             android:exported="false" />
         <activity

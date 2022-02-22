@@ -19,25 +19,8 @@
             android:layout_centerVertical="true"
             android:id="@+id/main_vote">
 
-            <TextView
-                android:id="@+id/voteTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Time left to verify"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="2dp" />
 
-            <TextView
-                android:id="@+id/voteSubtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="5:20"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="10dp" />
+            <include layout="@layout/vote_header_view"/>
 
             <RadioGroup
                 android:id="@+id/radioGroup"
@@ -76,26 +59,8 @@
 
             </RadioGroup>
 
-            <TextView
-                android:id="@+id/voteResultsText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Members who have voted: 1"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="2dp" />
+            <include layout="@layout/vote_footer_view"/>
 
-            <TextView
-                android:id="@+id/voteSharesText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Total verified voters: 1"
-                android:layout_marginTop="8dp"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textAlignment="center"
-                android:padding="2dp" />
 
         </LinearLayout>
     </RelativeLayout>

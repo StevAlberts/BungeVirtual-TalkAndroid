@@ -38,16 +38,12 @@ import android.content.res.Resources
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.drawable.ColorDrawable
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
+import android.os.*
 import android.os.Build.VERSION_CODES.O
-import android.os.Bundle
-import android.os.Handler
-import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.provider.ContactsContract
 import android.text.Editable
 import android.text.InputFilter
@@ -55,21 +51,8 @@ import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
-import android.view.Gravity
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.MotionEvent
-import android.view.View
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
-import android.view.animation.LinearInterpolator
-import android.widget.AbsListView
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.PopupMenu
-import android.widget.RelativeLayout
-import android.widget.Toast
+import android.view.*
+import android.widget.*
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -102,18 +85,7 @@ import com.nextcloud.talk.R
 import com.nextcloud.talk.activities.CallActivity
 import com.nextcloud.talk.activities.MainActivity
 import com.nextcloud.talk.activities.TakePhotoActivity
-import com.nextcloud.talk.adapters.messages.IncomingLocationMessageViewHolder
-import com.nextcloud.talk.adapters.messages.IncomingPreviewMessageViewHolder
-import com.nextcloud.talk.adapters.messages.IncomingVoiceMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicIncomingTextMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicOutcomingTextMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicSystemMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicUnreadNoticeMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingLocationMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingPreviewMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingVoiceMessageViewHolder
-import com.nextcloud.talk.adapters.messages.TalkMessagesListAdapter
-import com.nextcloud.talk.adapters.messages.VoiceMessageInterface
+import com.nextcloud.talk.adapters.messages.*
 import com.nextcloud.talk.api.NcApi
 import com.nextcloud.talk.application.NextcloudTalkApplication
 import com.nextcloud.talk.callbacks.MentionAutocompleteCallback
@@ -142,17 +114,8 @@ import com.nextcloud.talk.ui.bottom.sheet.ProfileBottomSheet
 import com.nextcloud.talk.ui.dialog.AttachmentDialog
 import com.nextcloud.talk.ui.recyclerview.MessageSwipeActions
 import com.nextcloud.talk.ui.recyclerview.MessageSwipeCallback
-import com.nextcloud.talk.utils.ApiUtils
-import com.nextcloud.talk.utils.ConductorRemapping
+import com.nextcloud.talk.utils.*
 import com.nextcloud.talk.utils.ConductorRemapping.remapChatController
-import com.nextcloud.talk.utils.ContactUtils
-import com.nextcloud.talk.utils.DateUtils
-import com.nextcloud.talk.utils.DisplayUtils
-import com.nextcloud.talk.utils.ImageEmojiEditText
-import com.nextcloud.talk.utils.KeyboardUtils
-import com.nextcloud.talk.utils.MagicCharPolicy
-import com.nextcloud.talk.utils.NotificationUtils
-import com.nextcloud.talk.utils.UriUtils
 import com.nextcloud.talk.utils.bundle.BundleKeys
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ACTIVE_CONVERSATION
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_CONVERSATION_TYPE
@@ -185,15 +148,12 @@ import org.parceler.Parcels
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.File
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
-import java.util.ArrayList
-import java.util.Date
-import java.util.HashMap
-import java.util.Objects
+import java.util.*
 import java.util.concurrent.ExecutionException
 import javax.inject.Inject
+
 
 @AutoInjector(NextcloudTalkApplication::class)
 class ChatController(args: Bundle) :
@@ -1170,6 +1130,9 @@ class ChatController(args: Bundle) :
     }
 
     private fun checkLobbyState() {
+        // initializing media player
+        val lobbyPlayer = MediaPlayer()
+
         if (currentConversation != null &&
             currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
             isAlive()
@@ -1205,6 +1168,29 @@ class ChatController(args: Bundle) :
 
                 sb.append(currentConversation!!.description)
                 binding.lobby.lobbyTextView.text = sb.toString()
+
+                // play lobby anthem
+
+                val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
+
+                // set the media player audio stream type
+                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
+
+                // set the media player data source
+                lobbyPlayer.setDataSource(audioUrl)
+
+                // set the media player on completion listener
+//                lobbyPlayer.setOnCompletionListener {
+//                    // play the media player audio
+//                    anthemPlayer?.start()
+//                }
+
+                // prepare the media player
+                lobbyPlayer.prepare()
+
+                // play the media player audio
+                lobbyPlayer.start()
+
             } else {
                 binding.lobby.lobbyView.visibility = View.GONE
                 binding.messagesListView.visibility = View.VISIBLE
@@ -1216,11 +1202,22 @@ class ChatController(args: Bundle) :
                     futurePreconditionFailed = false
                     pullChatMessages(1)
                 }
+
+                Log.d(TAG,"STOP LOBBY ANTHEM")
+
+                // stop anthem
+                lobbyPlayer.stop()
+
             }
         } else {
             binding.lobby.lobbyView.visibility = View.GONE
             binding.messagesListView.visibility = View.VISIBLE
             binding.messageInputView.inputEditText?.visibility = View.VISIBLE
+
+            Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
+
+            // stop anthem
+            lobbyPlayer.stop()
         }
     }
 
@@ -1266,7 +1263,7 @@ class ChatController(args: Bundle) :
                     .setPositiveButtonColorRes(R.color.nc_darkGreen)
                     .setTitle(confirmationQuestion)
                     .setMessage(filenamesWithLinebreaks.toString())
-                    .setPositiveButton(R.string.nc_yes) { v ->
+                    .setPositiveButton(R.string.nc_yes) {
                         if (UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
                             uploadFiles(filesToUpload, false)
                         } else {
