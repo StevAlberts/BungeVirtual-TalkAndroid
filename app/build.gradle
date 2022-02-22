@@ -44,11 +44,11 @@ android {
 
         // mayor.minor.hotfix.increment (for increment: 01-50=Alpha / 51-89=RC / 90-99=stable)
         // xx   .xxx  .xx    .xx
-        versionCode 4
-        versionName "1.0.4"
+        versionCode 3
+        versionName "1.0.3"
 
         flavorDimensions "default"
-        renderscriptTargetApi 26
+        renderscriptTargetApi 19
         renderscriptSupportModeEnabled true
 
         productFlavors {

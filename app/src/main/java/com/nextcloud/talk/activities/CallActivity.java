@@ -20,6 +20,8 @@
 
 package com.nextcloud.talk.activities;
 
+import static android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG;
+import static android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
 import java.util.Map;
 import android.Manifest;
 import android.animation.Animator;
@@ -32,18 +34,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
+import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -52,19 +58,20 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bluelinelabs.logansquare.LoganSquare;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.nextcloud.talk.R;
+import com.nextcloud.talk.VoteSheetVote;
 import com.nextcloud.talk.adapters.ParticipantDisplayItem;
 import com.nextcloud.talk.adapters.ParticipantsAdapter;
 import com.nextcloud.talk.api.ApiService;
@@ -101,6 +108,7 @@ import com.nextcloud.talk.models.json.signaling.settings.SignalingSettingsOveral
 import com.nextcloud.talk.models.kikaoutitilies.KikaoUtilitiesConstants;
 import com.nextcloud.talk.models.kikaoutitilies.RequestToActionGenericResult;
 import com.nextcloud.talk.utils.ApiUtils;
+import com.nextcloud.talk.utils.CountDownTimer;
 import com.nextcloud.talk.utils.DisplayUtils;
 import com.nextcloud.talk.utils.NotificationUtils;
 import com.nextcloud.talk.utils.animations.PulseAnimation;
@@ -120,6 +128,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.joda.time.Instant;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -148,9 +157,12 @@ import org.webrtc.VideoTrack;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -164,6 +176,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
@@ -213,9 +226,6 @@ public class CallActivity extends CallBaseActivity {
 
     private final boolean otpVerified = false;
 
-    private boolean userHasPolls = false;
-
-
     private String timeLeftVote = "";
 
 
@@ -232,8 +242,6 @@ public class CallActivity extends CallBaseActivity {
     private static CallActivity mInstanceActivity;
 
     private int pollId;
-
-    private int pollExpire;
 
     private int otpExpire;
 
@@ -334,9 +342,6 @@ public class CallActivity extends CallBaseActivity {
 //    private List<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
     private ArrayList<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
 
-    private int voteResultsCount = 0;
-    private int voteSharesCount = 0;
-
 
     @Parcel
     public enum CallStatus {
@@ -358,7 +363,7 @@ public class CallActivity extends CallBaseActivity {
 
 //        apiService = retrofitHelper.getApiService();
 //        Log.d(TAG, "onCreate... apiService: " + apiService.toString());
-
+//        Log.d(TAG, "onCreate... baseUrl: " + baseUrl);
 
 
         hideNavigationIfNoPipAvailable();
@@ -372,7 +377,6 @@ public class CallActivity extends CallBaseActivity {
         isVoiceOnlyCall = extras.getBoolean(BundleKeys.INSTANCE.getKEY_CALL_VOICE_ONLY(), false);
         conversationType = (Conversation.ConversationType) extras.get(BundleKeys.INSTANCE.getKEY_CONVERSATION_TYPE());
 
-        Log.d(TAG, "onCreate conversationType...: " + extras.get(BundleKeys.INSTANCE.getKEY_CONVERSATION_TYPE()));
 
 
         if (extras.containsKey(BundleKeys.INSTANCE.getKEY_FROM_NOTIFICATION_START_CALL())) {
@@ -411,8 +415,6 @@ public class CallActivity extends CallBaseActivity {
         if (!isConnectionEstablished()) {
             initiateCall();
         }
-
-        // update self video view
         updateSelfVideoViewPosition();
 
         // initialize kikao activities
@@ -623,9 +625,7 @@ public class CallActivity extends CallBaseActivity {
             if (cameraEnumerator.getDeviceNames().length < 2) {
                 binding.switchSelfVideoButton.setVisibility(View.GONE);
             }
-
-            // used to run the camera on the main thread
-            runOnUiThread(this::initSelfVideoView);
+            initSelfVideoView();
         }
 
         binding.gridview.setOnTouchListener(new View.OnTouchListener() {
@@ -715,16 +715,9 @@ public class CallActivity extends CallBaseActivity {
             isVoiceOnlyCall);
         binding.gridview.setAdapter(participantsAdapter);
 
-        // used to run the camera on the main thread
-        runOnUiThread(() -> {
-            if (isInPipMode) {
-                updateUiForPipMode();
-            }
-        });
-
-//        if (isInPipMode) {
-//            updateUiForPipMode();
-//        }
+        if (isInPipMode) {
+            updateUiForPipMode();
+        }
     }
 
 
@@ -1794,9 +1787,6 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void processMessage(NCSignalingMessage ncSignalingMessage) {
-        // log ncSignalingMessage
-        Log.d(TAG, "Received signaling message screenshare...: " + ncSignalingMessage.getRoomType().equals("screen"));
-
         if (ncSignalingMessage.getRoomType().equals("video") || ncSignalingMessage.getRoomType().equals("screen")) {
             MagicPeerConnectionWrapper magicPeerConnectionWrapper =
                 getPeerConnectionWrapperForSessionIdAndType(ncSignalingMessage.getFrom(),
@@ -2840,36 +2830,23 @@ public class CallActivity extends CallBaseActivity {
         // TODO: Work with this to separate meetings
     private void initKikaoControls(){
         //save session
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putString(KikaoUtilitiesConstants.ACTIVE_SESSION_ID, roomToken);
-        editor.apply();
+//        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+//        SharedPreferences.Editor editor = sharedPref.edit();
+//        editor.putString(KikaoUtilitiesConstants.ACTIVE_SESSION_ID, roomToken);
+//        editor.apply();
 
         //show controls according to room type
         Log.d(TAG, "The conversation type type is: "+conversationType);
-//        if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
-//            showStaffControls();
-//        }else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)|| conversationType.equals(Conversation.ConversationType.DUMMY)){
-//            showPlenaryControlsDisabled();
-//            kikaoListener();
-//        }else if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL) || conversationType.equals(Conversation.ConversationType.DUMMY)){
-//            showCommitteeControlsDisabled();
-//            kikaoListener();
-//        }
-
-        if(conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
-            // show staff controls
+        if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
             showStaffControls();
-        }else if(
-            conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_PUBLIC_CALL)
-        ){
-            // disabled for plenary and committee
-            disableMeetingControlls();
+        }else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)){
+            showPlenaryControlsDisabled();
+            kikaoListener();
+        }else if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL)){
+            showCommitteeControlsDisabled();
             kikaoListener();
         }
+
 
         binding.requestToSpeakButton.setOnClickListener(l ->{
 
@@ -3300,7 +3277,6 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void listenResponses(){
-        Log.d(TAG, "listening Responses........");
         if(speakResult != null){
             for (RequestToActionGenericResult activity : requestResultList) {
                 if (Objects.equals(activity.getId(), speakResult.getId())) {
@@ -3319,19 +3295,36 @@ public class CallActivity extends CallBaseActivity {
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
-                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL)) {
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
                                 showTimerButton(true);
+//                                startTimerCount(activity.getDuration());
+//                                timeCounter.start();
                             }
 
                             if(activity.getPaused()) {
                                 Log.d(TAG, "Paused speak request to action listenResponses........");
                                 // hide media controls
                                 hideControls();
+                                // pause timer during plenary_call
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(false);
+//                                    timeCounter.pause();
+                                    // handle timer pause
+//                                }
+
                             }else {
                                 Log.d(TAG, "Resumed speak request to action listenResponses........");
                                 startTimerCount(activity.getDuration(),activity.getTalkingSince());
+                                // start timer count again
+//                                startTimer();
+//                                pauseTimer(false);
+                                // pause timer during plenary_call
+                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+                                    // handle timer resume
+//                                    timeCounter.resume();
+                                }
                             }
                         }
                     }else {
@@ -3385,19 +3378,39 @@ public class CallActivity extends CallBaseActivity {
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
-                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL)) {
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
                                 showTimerButton(true);
+//                                startTimerCount(activity.getDuration());
+//                                timeCounter.start();
                             }
 
                             if(activity.getPaused()) {
                                 Log.d(TAG, "Paused speak request to action listenResponses........");
+                                // handle timer pause
+//                                timeCounter.pause();
                                 // hide media controls
                                 hideControls();
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(false);
+//                                    // handle timer pause
+//                                }
                             }else {
                                 Log.d(TAG, "Resumed speak request to action listenResponses........");
                                 startTimerCount(activity.getDuration(),activity.getTalkingSince());
+                                // resume timer
+//                                timeCounter.resume();
+
+                                // start timer count again
+//                                startTimer();
+//                                pauseTimer(false);
+//                                if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)) {
+//                                    showTimerButton(true);
+////                                    startTimer();
+//                                    // handle timer pause
+//                                    pauseTimer(false);
+//                                }
                             }
                         }
                     }else {
@@ -3486,8 +3499,8 @@ public class CallActivity extends CallBaseActivity {
         binding.speakerButton.setVisibility(View.GONE);
         binding.microphoneButton.setVisibility(View.VISIBLE);
         binding.cameraButton.setVisibility(View.VISIBLE);
-//        binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
-//        binding.selfVideoRenderer.setVisibility(View.VISIBLE);
+        binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
+        binding.selfVideoRenderer.setVisibility(View.VISIBLE);
         if (cameraEnumerator.getDeviceNames().length < 2) {
             binding.switchSelfVideoButton.setVisibility(View.GONE);
         }
@@ -3525,8 +3538,45 @@ public class CallActivity extends CallBaseActivity {
         }
     }
 
-    private void disableMeetingControlls(){
-        Log.d(TAG, "Disable meeting controls");
+
+    private void showCommitteeControlsDisabled(){
+        Log.d(TAG, "Disable committee controls");
+        //mute mic and camera
+        audioOn = false;
+        videoOn = false;
+
+        //disable audioOn = false
+        toggleMedia(false, false);
+        //disable video
+        toggleMedia(videoOn, true);
+
+        if (binding.requestsLinearLayout!=null){
+            binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            binding.voteLinearLayout.setVisibility(View.VISIBLE);
+            if (binding.timeLeftButton!=null){
+                binding.timeLeftButton.setVisibility(View.GONE);
+            }
+        }
+
+
+        binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
+        binding.microphoneButton.setVisibility(View.GONE);
+
+        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
+        binding.cameraButton.setVisibility(View.GONE);
+
+        binding.switchSelfVideoButton.setVisibility(View.GONE);
+        binding.selfVideoRenderer.setVisibility(View.GONE);
+
+        //cancel timer
+//        if(countDownTimer!=null){
+//            countDownTimer.cancel();
+//        }
+
+    }
+
+    private void showPlenaryControlsDisabled(){
+        Log.d(TAG, "Disable plenary controls");
         //mute mic and camera
         audioOn = false;
         videoOn = false;
@@ -3545,16 +3595,80 @@ public class CallActivity extends CallBaseActivity {
         }
 
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
-        binding.microphoneButton.setVisibility(View.GONE);
-
         binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
-        binding.cameraButton.setVisibility(View.GONE);
 
+        binding.microphoneButton.setVisibility(View.GONE);
+        binding.cameraButton.setVisibility(View.GONE);
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
 
     }
 
+    private void showCommitteeControlsEnabled(){
+        Log.d(TAG, "Show committee controls");
+        if (binding.requestsLinearLayout!=null){
+            binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            if (binding.timeLeftButton!=null){
+                binding.timeLeftButton.setVisibility(View.GONE);
+            }
+        }
+
+        binding. microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
+        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
+        if (isVoiceOnlyCall) {
+            binding.speakerButton.setVisibility(View.VISIBLE);
+            binding.microphoneButton.setVisibility(View.VISIBLE);
+            binding.cameraButton.setVisibility(View.GONE);
+            binding.cameraButton.setVisibility(View.GONE);
+            binding.selfVideoRenderer.setVisibility(View.GONE);
+        } else {
+            binding.speakerButton.setVisibility(View.GONE);
+            binding.microphoneButton.setVisibility(View.VISIBLE);
+            binding.cameraButton.setVisibility(View.VISIBLE);
+            binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
+            binding.selfVideoRenderer.setVisibility(View.VISIBLE);
+            if (cameraEnumerator.getDeviceNames().length < 2) {
+                binding.switchSelfVideoButton.setVisibility(View.GONE);
+            }
+        }
+
+        //show timer and wait to start
+//        initTimer(allocatedSpeakTime);
+
+    }
+
+    private void showPlenaryControlsEnabled(){
+        Log.d(TAG, "Show plenary controls");
+        if (binding.requestsLinearLayout!=null){
+            binding.requestsLinearLayout.setVisibility(View.VISIBLE);
+            if (binding.timeLeftButton!=null){
+                binding.timeLeftButton.setVisibility(View.VISIBLE);
+            }
+        }
+
+        binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
+        binding.cameraButton.getHierarchy().setPlaceholderImage(R.drawable.ic_videocam_off_white_24px);
+        if (isVoiceOnlyCall) {
+            binding.speakerButton.setVisibility(View.VISIBLE);
+            binding.microphoneButton.setVisibility(View.VISIBLE);
+            binding.cameraButton.setVisibility(View.GONE);
+            binding.cameraButton.setVisibility(View.GONE);
+            binding.selfVideoRenderer.setVisibility(View.GONE);
+        } else {
+            binding.speakerButton.setVisibility(View.GONE);
+            binding.microphoneButton.setVisibility(View.VISIBLE);
+            binding.cameraButton.setVisibility(View.VISIBLE);
+            binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
+            binding.selfVideoRenderer.setVisibility(View.VISIBLE);
+            if (cameraEnumerator.getDeviceNames().length < 2) {
+                binding.switchSelfVideoButton.setVisibility(View.GONE);
+            }
+        }
+
+        //show timer and wait to start
+//        initTimer(allocatedSpeakTime);
+
+    }
 
     private void startTimerCount(Integer duration, Integer talkingSince){
         Log.d(TAG, "Start timer count......");
@@ -3627,6 +3741,7 @@ public class CallActivity extends CallBaseActivity {
                 // send otp
                 sendOtp();
 
+
                 final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
                 View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_otp, null);
                 bottomSheetDialog.setContentView(bottomSheetView);
@@ -3635,25 +3750,22 @@ public class CallActivity extends CallBaseActivity {
                 // log user verified
                 Log.d(TAG, "User verified..........");
 
+
                 Log.d(TAG, "bottomOtpSheetDialog dismissed..........");
 
 
                 final Button verifyOtpBtn = bottomSheetView.findViewById(R.id.veriftyOtpBtn);
                 final EditText otpText = bottomSheetView.findViewById(R.id.textOtp);
-                final ProgressBar spinner = bottomSheetView.findViewById(R.id.progressBarOtp);
 
                 verifyOtpBtn.setOnClickListener(v -> {
-                    // show waiting spinner
-                    if(!otpText.getText().toString().isEmpty()){
-                        if(spinner.getVisibility() == View.GONE) {
-                            spinner.setVisibility(View.VISIBLE);
-                            verifyOtpBtn.setVisibility(View.GONE);
-                        }
-                        verifyOtp(otpText.getText().toString());
-                    }else{
-                        Toast.makeText(getApplicationContext(), "Please enter OTP", Toast.LENGTH_SHORT).show();
-                    }
+                    // dismiss the sheet of otp
+                    bottomSheetDialog.dismiss();
+                    Log.d(TAG, "otpText: " + otpText.getText().toString());
+                    verifyOtp(otpText.getText().toString());
                 });
+
+
+
             }
 
             @Override
@@ -3713,7 +3825,6 @@ public class CallActivity extends CallBaseActivity {
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
                     //todo show error to user
                     Log.d(TAG, "sendOtpError: " + e.getMessage());
-                    Toast.makeText(getApplicationContext(), "Error check your internet connection", Toast.LENGTH_SHORT).show();
                 }
 
                 @Override
@@ -3756,29 +3867,28 @@ public class CallActivity extends CallBaseActivity {
                         e.printStackTrace();
                     }
 
-                    Log.d(TAG, "verifyOtpResponse....: " + response);
-
-                    // TODO: store value in shared preferences for verified true
-                    SharedPreferences.Editor editor = getSharedPreferences("voter", MODE_PRIVATE).edit();
-                    editor.putBoolean("verified", true);
-                    editor.apply();
+                    // show bottom sheet to vote
+                    final BottomSheetDialog voteSheetDialog = new BottomSheetDialog(CallActivity.this);
+                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
+                    voteSheetDialog.setContentView(voteSheetView);
+                    voteSheetDialog.show();
 
                     // get polls options
-                    getPollsOptions();
+//                    getPollsOptions();
+
+                    Log.d(TAG, "verifyOtpResponse....: " + response);
+
                 }
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
                     Log.d(TAG, "verifyOtpError: " + e.getMessage());
-                    Toast.makeText(getApplicationContext(), "OTP verification failed",
-                            Toast.LENGTH_SHORT)
-                        .show();
                 }
 
                 @Override
                 public void onComplete() {
                     // unused atm
-                    Log.d(TAG, "verifyOtpComplete....");
                 }
             });
     }
@@ -3812,27 +3922,28 @@ public class CallActivity extends CallBaseActivity {
                         // parse response as JSON
                         try {
                             JSONObject jsonObject = new JSONObject(response);
+
                             Log.d(TAG, "onFetchVoteResponse....: " + jsonObject.getString("vote"));
 
+                            // get the vote
                             String vote = jsonObject.getString("vote");
 
-                            if (!vote.equals("false")) {
-                                // get id inside vote
-                                JSONObject voteObject = new JSONObject(vote);
-                                String voteId = voteObject.getString("id");
-                                String expire = voteObject.getString("expire");
-                                String meetingId = voteObject.getString("meeting_id");
-                                String notifMins = voteObject.getString("notif_mins");
-                                String openingTime = voteObject.getString("opening_time");
+                            // get id inside vote
+                            JSONObject voteObject = new JSONObject(vote);
+                            String voteId = voteObject.getString("id");
+                            String expire = voteObject.getString("expire");
+                            String meetingId = voteObject.getString("meeting_id");
+                            String notifMins = voteObject.getString("notif_mins");
+                            String openingTime = voteObject.getString("opening_time");
 
-                                // log vote id
-                                Log.d(TAG, "voteId....: " + voteId);
+                            // log vote id
+                            Log.d(TAG, "voteId....: " + voteId);
 
-                                // set poll id
-                                pollId = Integer.parseInt(voteId);
+                            // set poll id
+                            pollId = Integer.parseInt(voteId);
 
-                                // set expire time
-                                otpExpire = Integer.parseInt(expire);
+                            // set expire time
+                            otpExpire = Integer.parseInt(expire);
 
                                 // log everything
                                 Log.d(TAG, "Vote id: " + voteId);
@@ -3849,21 +3960,21 @@ public class CallActivity extends CallBaseActivity {
                                 // if expireInt is greater than today
                                 // get current time
                                 Calendar calendar = Calendar.getInstance();
-                                int currentTime = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
+                                int currentTime = calendar.get(Calendar.HOUR_OF_DAY)*60+calendar.get(Calendar.MINUTE);
                                 // log current time
                                 Log.d(TAG, "Current time...: " + currentTime);
-                                if (meetingId.equals(roomToken)) {
-                                    countTimerLeftVote(openingTimeInt);
-                                    if (expireInt > 0) {
+                                if(meetingId.equals(roomToken)){
+                                    startTimerLeftVote(openingTimeInt);
+                                    if(expireInt>0){
                                         // if expireInt is greater than current time
-                                        if (expireInt > currentTime) {
+                                        if(expireInt>currentTime){
                                             Log.d(TAG, "Show vote btn expire....:");
                                             // unshow vote button
                                             binding.voteButton.setVisibility(View.GONE);
                                         }
-                                    } else {
+                                    }else{
                                         // if opening time is greater than current time
-                                        if (openingTimeInt > currentTime) {
+                                        if(openingTimeInt>currentTime){
                                             Log.d(TAG, "Show vote btn open....:");
                                             // show vote button
                                             binding.voteButton.setVisibility(View.VISIBLE);
@@ -3876,10 +3987,6 @@ public class CallActivity extends CallBaseActivity {
                                         }
                                     }
 
-                                }
-                            } else {
-                                Log.d(TAG, "No vote found....:");
-                                binding.voteButton.setVisibility(View.GONE);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -3900,7 +4007,6 @@ public class CallActivity extends CallBaseActivity {
                 }
             });
     }
-
 
     private void listenToPolls(){
         apiService.getPolls(credentials)
@@ -3926,55 +4032,6 @@ public class CallActivity extends CallBaseActivity {
                     }
 
                     Log.d(TAG, "listenToPollsResponse....: " + response);
-
-                    // parse response
-                    try {
-                        JSONObject jsonObject = new JSONObject(response);
-                        JSONArray jsonArray = jsonObject.getJSONArray("polls");
-                        Log.d(TAG, "onPollsResponse....: " + jsonObject.getJSONArray("polls"));
-
-
-                        Log.d(TAG, "pollid....: " + pollId);
-
-                        Log.d(TAG, "jsonArrayLength....: " + jsonArray.length());
-
-                        if (jsonArray.length() > 0) {
-                            for (int i = 0; i < jsonArray.length(); i++) {
-                                JSONObject jsonObject1 = jsonArray.getJSONObject(i);
-                                String poll_id = jsonObject1.getString("id");
-                                String expireTime = jsonObject1.getString("pollExpire");
-
-                                int pollid = Integer.parseInt(poll_id);
-                                Log.d(TAG, "poll_id....: " + poll_id);
-
-                                if (pollId == pollid && !userHasPolls) {
-
-                                    userHasPolls = true;
-
-                                    // set expire time
-                                    pollExpire = Integer.parseInt(expireTime);
-
-                                    Log.d(TAG, "listenToPolls....ID: " + pollId);
-
-                                    // dismiss otp dialog
-                                    final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
-                                    bottomSheetDialog.dismiss();
-
-                                    // show bottom sheet to vote
-                                    final BottomSheetDialog voteSheetDialog = new BottomSheetDialog(CallActivity.this);
-                                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
-                                    voteSheetDialog.setContentView(voteSheetView);
-                                    voteSheetDialog.show();
-
-                                    TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
-                                    voteTitle.setText(jsonObject1.getString("title"));
-                                }
-                            }
-                        }
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
 
                 }
 
@@ -4008,22 +4065,17 @@ public class CallActivity extends CallBaseActivity {
 
                     // serialize response
                     String response = null;
-                    // parse response
                     try {
                         response = responseBody.string();
-
-                        JSONObject jsonObject = new JSONObject(response);
-                        JSONArray jsonArray = jsonObject.getJSONArray("shares");
-
-                        Log.d(TAG, "listenToShares....: " + jsonObject.getJSONArray("shares"));
-
-                        voteSharesCount = jsonArray.length();
-
-                    } catch (JSONException | IOException e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
+
+                    Log.d(TAG, "listenToSharesResponse....: " + response);
+
                 }
-                    @Override
+
+                @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
                     Log.d(TAG, "listenToSharesError: " + e.getMessage());
                 }
@@ -4092,23 +4144,13 @@ public class CallActivity extends CallBaseActivity {
 
                     // serialize response
                     String response = null;
-                    // parse response
                     try {
                         response = responseBody.string();
-
-                        Log.d(TAG, "getVoteResultsResponse....: " + response);
-
-
-                        JSONObject jsonObject = new JSONObject(response);
-                        JSONArray jsonArray = jsonObject.getJSONArray("votes");
-
-                        Log.d(TAG, "getVoteResults....: " + jsonObject.getJSONArray("votes"));
-
-                        voteResultsCount = jsonArray.length();
-
-                    } catch (JSONException | IOException e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
+
+                    Log.d(TAG, "getVoteResultsResponse....: " + response);
 
                 }
 
@@ -4125,14 +4167,14 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
-    private void countTimerLeftVote(Integer openingTime) {
+    private void startTimerLeftVote(Integer openingTime) {
         Log.d(TAG, "Start timer count......");
 
         // now
         long nowTimestamp = System.currentTimeMillis() / 1000;
         Log.d(TAG, "Now timestamp..: " + nowTimestamp);
         // parse nowTimestamp to int
-        int now = Integer.parseInt(Long.toString(nowTimestamp));
+        Integer now = Integer.parseInt(Long.toString(nowTimestamp));
 
         // calculate time left
         int timeLeft = openingTime - now;
@@ -4150,63 +4192,14 @@ public class CallActivity extends CallBaseActivity {
 
         Log.d(TAG, "Time String..: " + timeLeftString);
 
-        // find view otpCountDown
-        View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_header_view, null);
-        TextView otpCountDown = voteSheetView.findViewById(R.id.voteSubtitle);
-
         if (timeLeft > 0) {
             // set time left to textview
             timeLeftVote = timeLeftString;
             runOnUiThread(() -> {
                 // Stuff that updates the UI
-                otpCountDown.setText(timeLeftString);
             });
         }
     }
-
-    public void timers(){
-        // now
-        long nowTimestamp = System.currentTimeMillis() / 1000;
-        int now = Integer.parseInt(Long.toString(nowTimestamp));
-
-        // closing time of poll
-        int closing = pollExpire;
-
-        // calculate time left
-        int timeLeft = closing - now;
-
-        // format closing to EEEE, MMMM dd, yyyy HH:mm:ss
-        String closingString = String.format("%02d:%02d",
-            TimeUnit.SECONDS.toMinutes(closing),
-            TimeUnit.SECONDS.toSeconds(closing) -
-                TimeUnit.MINUTES.toSeconds(TimeUnit.SECONDS.toMinutes(closing))
-        );
-
-
-//
-//        let expireTime = TimeInterval(closing)
-//        let myDate = NSDate(timeIntervalSince1970: expireTime)
-//
-//        let dateFormatter = DateFormatter()
-//        dateFormatter.dateFormat = "EEEE, MMM d, yyyy HH:mm a"
-//        let strDate = dateFormatter.string(from: myDate as Date)
-//
-//        self.closeDate = strDate
-//
-//        if closing > 0 {
-//            let calendar = Calendar.current
-//            let now = Date()
-//            let date = Date(timeIntervalSince1970: TimeInterval(closing))
-////                .adding(hours: 3)
-//            let diff = calendar.dateComponents([.hour, .minute, .second], from: now, to: date)
-//            if diff.second! >= 0 {
-//                let mins = String(format: "%02d", diff.minute!)
-//                let secs = String(format: "%02d", diff.second!) // returns "100"
-//                self.timeLeft = "\(mins):\(secs)"
-//            }
-//        }
-    }
-
 
     public void onRadioButtonClicked(View view) {
         // Is the button now checked?
