@@ -1787,6 +1787,7 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void processMessage(NCSignalingMessage ncSignalingMessage) {
+        Log.d(TAG, "processMessage start: " +ncSignalingMessage.getRoomType());
         if (ncSignalingMessage.getRoomType().equals("video") || ncSignalingMessage.getRoomType().equals("screen")) {
             MagicPeerConnectionWrapper magicPeerConnectionWrapper =
                 getPeerConnectionWrapperForSessionIdAndType(ncSignalingMessage.getFrom(),
@@ -1799,10 +1800,11 @@ public class CallActivity extends CallBaseActivity {
                 type = ncSignalingMessage.getType();
             }
 
+
             if (type != null) {
                 switch (type) {
                     case "unshareScreen":
-                        endPeerConnection(ncSignalingMessage.getFrom(), true);
+                        endPeerConnection(ncSignalingMessage.getFrom(), false);
                         break;
                     case "offer":
                     case "answer":
@@ -1838,7 +1840,16 @@ public class CallActivity extends CallBaseActivity {
         } else {
             Log.e(TAG, "unexpected RoomType while processing NCSignalingMessage");
         }
+        //logs to check screen shared or unshared
+        if(ncSignalingMessage.getRoomType().equals("screen")) {
+            Log.d(TAG, "screen has been shared");
+        }
+        else
+        {
+            Log.d(TAG, "screen has been unshared");
+        }
     }
+
 
     public void meetingEnded(){
         binding.callStates.callStateTextView.setTextColor(getResources().getColor(R.color.nc_darkRed));
@@ -2103,6 +2114,7 @@ public class CallActivity extends CallBaseActivity {
                                                                                 false,
                                                                                 type);
                 } else {
+                    Log.d(TAG, "getPeerConnectionWrapperForSessionIdAndType: screen shared");
                     magicPeerConnectionWrapper = new MagicPeerConnectionWrapper(peerConnectionFactory,
                                                                                 iceServers,
                                                                                 sdpConstraints,
@@ -2762,7 +2774,7 @@ public class CallActivity extends CallBaseActivity {
         binding.gridview.setLayoutParams(params);
 
 
-        //binding.callControls.setVisibility(View.GONE);
+        binding.callControls.setVisibility(View.GONE);
         binding.requestsAndControlsLinearLayout.setVisibility(View.GONE); //hide this instead of above to cover both
         // request controls and normal controls
         binding.callInfosLinearLayout.setVisibility(View.GONE);
@@ -2781,12 +2793,12 @@ public class CallActivity extends CallBaseActivity {
 
     public void updateUiForNormalMode() {
         Log.d(TAG, "updateUiForNormalMode");
-
-        /*if (isVoiceOnlyCall) {
+        //uncommented this for check
+        if (isVoiceOnlyCall) {
             binding.callControls.setVisibility(View.VISIBLE);
         } else {
             binding.callControls.setVisibility(View.INVISIBLE); // animateCallControls needs this to be invisible for a check.
-        }*/
+        }
 
         binding.requestsAndControlsLinearLayout.setVisibility(View.VISIBLE); //always be visible
         initViews();

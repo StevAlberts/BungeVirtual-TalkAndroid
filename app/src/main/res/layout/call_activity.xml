@@ -44,7 +44,6 @@
             android:background="@color/grey950"
             android:visibility="visible"
             android:orientation="vertical"
-            android:scaleType="centerInside"
             tools:visibility="visible">
 
             <GridView
