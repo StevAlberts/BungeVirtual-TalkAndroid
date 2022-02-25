@@ -1206,7 +1206,9 @@ class ChatController(args: Bundle) :
                 Log.d(TAG,"STOP LOBBY ANTHEM")
 
                 // stop anthem
-                lobbyPlayer.stop()
+                if(lobbyPlayer.isPlaying){
+                    lobbyPlayer.stop()
+                }
 
             }
         } else {
@@ -1217,7 +1219,7 @@ class ChatController(args: Bundle) :
             Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
 
             // stop anthem
-            lobbyPlayer.stop()
+//            lobbyPlayer.stop()
         }
     }
 

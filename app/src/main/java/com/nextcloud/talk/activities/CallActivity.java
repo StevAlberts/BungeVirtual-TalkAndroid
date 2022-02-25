@@ -29,6 +29,7 @@ import android.app.PendingIntent;
 import android.app.RemoteAction;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -36,12 +37,12 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
-import android.icu.util.Calendar;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -57,6 +58,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -184,7 +186,7 @@ import okhttp3.ResponseBody;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 
 @AutoInjector(NextcloudTalkApplication.class)
-public class CallActivity extends CallBaseActivity {
+public class CallActivity extends CallBaseActivity implements View.OnClickListener {
 
     @Inject
     NcApi ncApi;
@@ -213,6 +215,7 @@ public class CallActivity extends CallBaseActivity {
 
     private final boolean otpVerified = false;
 
+    private boolean isCounting = false;
     private boolean userHasPolls = false;
 
 
@@ -236,6 +239,8 @@ public class CallActivity extends CallBaseActivity {
     private int pollExpire;
 
     private int otpExpire;
+
+    private int otpOpen;
 
     public static CallActivity getmInstanceActivity() {
         return mInstanceActivity;
@@ -333,6 +338,10 @@ public class CallActivity extends CallBaseActivity {
 
 //    private List<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
     private ArrayList<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
+
+    // array of map for voteOptions
+    private ArrayList<JSONObject> voteOptions = new ArrayList<JSONObject>();
+//    private ArrayList<String> voteOptions = new ArrayList<String>();
 
     private int voteResultsCount = 0;
     private int voteSharesCount = 0;
@@ -1000,8 +1009,6 @@ public class CallActivity extends CallBaseActivity {
                     e.printStackTrace();
                 }
 
-//                requestToSpeakStartLoading();
-
 
                 Log.d(TAG,"Calling apiservice");
 
@@ -1084,14 +1091,6 @@ public class CallActivity extends CallBaseActivity {
                             }
                         });
                 }
-
-
-
-
-
-//            }
-
-//        }
 
     }
 
@@ -2847,17 +2846,10 @@ public class CallActivity extends CallBaseActivity {
 
         //show controls according to room type
         Log.d(TAG, "The conversation type type is: "+conversationType);
-//        if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
-//            showStaffControls();
-//        }else if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL)|| conversationType.equals(Conversation.ConversationType.DUMMY)){
-//            showPlenaryControlsDisabled();
-//            kikaoListener();
-//        }else if (conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL) || conversationType.equals(Conversation.ConversationType.DUMMY)){
-//            showCommitteeControlsDisabled();
-//            kikaoListener();
-//        }
 
-        if(conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL)){
+        if(conversationType.equals(Conversation.ConversationType.ROOM_GROUP_CALL) ||
+            conversationType.equals(Conversation.ConversationType.ROOM_PUBLIC_CALL)
+        ){
             // show staff controls
             showStaffControls();
         }else if(
@@ -2894,7 +2886,6 @@ public class CallActivity extends CallBaseActivity {
         });
 
         // prepare fingerprint
-
         bioAuthPrompt();
 
         // open vote sheet
@@ -2914,6 +2905,38 @@ public class CallActivity extends CallBaseActivity {
                 biometricPrompt.authenticate(promptInfo);
                 bottomSheetDialog.dismiss();
             });
+        });
+
+        // Listen to vote changes
+        View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
+        RadioGroup voteRadio = bottomSheetView.findViewById(R.id.radioGroup);
+        voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
+            Log.d(TAG, "voteRadio checkedId: "+checkedId);
+            Log.d(TAG, "voteRadio checkedId: "+group.getCheckedRadioButtonId());
+            Log.d(TAG, "voteRadio checkedId: "+group.getAccessibilityClassName());
+            Log.d(TAG, "voteRadio checkedId: "+group.getClass().getName());
+            Log.d(TAG, "voteRadio checkedId: "+group.getId());
+
+            switch(checkedId){
+                case R.id.voteYes:
+                    // do operations specific to this selection
+                    Log.d(TAG,"VotedYes..:"+checkedId);
+                    // toast
+                    Toast.makeText(getApplicationContext(), "Voted Yes", Toast.LENGTH_SHORT).show();
+                    break;
+                case R.id.voteNo:
+                    // do operations specific to this selection
+                    Log.d(TAG,"VotedNo..:"+checkedId);
+                    // toast
+                    Toast.makeText(getApplicationContext(), "Voted No", Toast.LENGTH_SHORT).show();
+                    break;
+                case R.id.voteAbstain:
+                    // do operations specific to this selection
+                    Log.d(TAG,"VotedMaybe..:"+checkedId);
+                    // toast
+                    Toast.makeText(getApplicationContext(), "Voted Abstain", Toast.LENGTH_SHORT).show();
+                    break;
+            }
         });
 
 
@@ -2947,30 +2970,6 @@ public class CallActivity extends CallBaseActivity {
             }
         });
     }
-
-//    private void requestToSpeakStartLoading(){
-//
-//    }
-//
-//    private void requestToInterveneStartLoading(){
-//
-//    }
-//
-//    private void showRequestToSpeakButtonSuccess() {
-//
-//    }
-//
-//    private void showRequestToSpeakLoadingError() {
-//
-//    }
-//
-//    private void showRequestToInterveneButtonSuccess() {
-//
-//    }
-//
-//    private void showRequestToInterveneLoadingError() {
-//
-//    }
 
     private void requestPermissionToSpeakNetworkCall() {
 
@@ -3025,7 +3024,7 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-//                    showRequestToSpeakLoadingError();
+                    Log.d(TAG, "Request to speakResult.....: " + e.getMessage());
                 }
 
                 @Override
@@ -3051,8 +3050,6 @@ public class CallActivity extends CallBaseActivity {
             e.printStackTrace();
         }
 
-//        requestToInterveneStartLoading();
-
         Log.d(TAG,"Calling apiservice");
         apiService.requestToIntervene(credentials, RequestBody.create(MediaType.parse("application/json"), json.toString()))
             .subscribeOn(Schedulers.io())
@@ -3068,7 +3065,6 @@ public class CallActivity extends CallBaseActivity {
                     binding.requestToInterveneButton.setText(getResources().getString(R.string.action_cancel));
                     binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
                                                                                        R.color.kikao_danger));
-//                    showRequestToInterveneButtonSuccess();
 
                     // store requestToActionGenericResult to shared preferences
                     interveneResult = requestToActionGenericResult;
@@ -3082,7 +3078,8 @@ public class CallActivity extends CallBaseActivity {
 
                 @Override
                 public void onError(@io.reactivex.annotations.NonNull Throwable e) {
-//                    showRequestToInterveneLoadingError();
+                    // log
+                    Log.d(TAG, "Error: " + e.getMessage());
                 }
 
                 @Override
@@ -3111,7 +3108,6 @@ public class CallActivity extends CallBaseActivity {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-//        requestToSpeakStartLoading();
 
 
             Log.d(TAG, "Calling cancelRequestPermissionToSpeakNetworkCall...::" + sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID, 0));
@@ -3134,10 +3130,6 @@ public class CallActivity extends CallBaseActivity {
                         SharedPreferences.Editor editor = sharedPref.edit();
                         editor.remove(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID);
                         editor.apply();
-//                    showRequestToSpeakButtonSuccess();
-//                    binding.requestToSpeakButton.setText(getResources().getString(R.string.kikao_request_to_speak));
-//                    binding.requestToSpeakButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-//                                                                                   R.color.colorPrimary));
                     }
 
                     @Override
@@ -3678,7 +3670,7 @@ public class CallActivity extends CallBaseActivity {
         try {
             json.put("userId", conversationUser.getUserId());
             json.put("pollId", pollId);
-            json.put("otpExpire", otpExpire);
+            json.put("otpExpire", otpOpen);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -3725,6 +3717,9 @@ public class CallActivity extends CallBaseActivity {
 
     private void verifyOtp(String enteredOtp){
 
+        // log entered otp
+        Log.d(TAG, "enteredOtp....: " + enteredOtp);
+
         JSONObject json = new JSONObject();
         try {
             json.put("userId", conversationUser.getUserId());
@@ -3757,6 +3752,13 @@ public class CallActivity extends CallBaseActivity {
                     }
 
                     Log.d(TAG, "verifyOtpResponse....: " + response);
+
+                    // dismiss verify dialog
+                    final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+                    View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_otp, null);
+                    bottomSheetDialog.setContentView(bottomSheetView);
+                    bottomSheetDialog.dismiss();
+
 
                     // TODO: store value in shared preferences for verified true
                     SharedPreferences.Editor editor = getSharedPreferences("voter", MODE_PRIVATE).edit();
@@ -3834,6 +3836,9 @@ public class CallActivity extends CallBaseActivity {
                                 // set expire time
                                 otpExpire = Integer.parseInt(expire);
 
+                                otpOpen = Integer.parseInt(openingTime);
+
+
                                 // log everything
                                 Log.d(TAG, "Vote id: " + voteId);
                                 Log.d(TAG, "Expire: " + expire);
@@ -3846,24 +3851,38 @@ public class CallActivity extends CallBaseActivity {
                                 int openingTimeInt = Integer.parseInt(openingTime);
                                 // parse notif mins to int
                                 int notifMinsInt = Integer.parseInt(notifMins);
-                                // if expireInt is greater than today
-                                // get current time
-                                Calendar calendar = Calendar.getInstance();
-                                int currentTime = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
+                                // parse currentTime to int
+                                long nowTimestamp = System.currentTimeMillis() / 1000;
+
                                 // log current time
-                                Log.d(TAG, "Current time...: " + currentTime);
+                                Log.d(TAG, "Current time...: " + nowTimestamp);
+                                Log.d(TAG, "Expire...: " + expireInt);
+                                Log.d(TAG, "OpeningTimeInt...: " + openingTimeInt);
+
                                 if (meetingId.equals(roomToken)) {
-                                    countTimerLeftVote(openingTimeInt);
+                                    // used to count down
+                                    countTimerLeftVote(openingTimeInt,expireInt);
+                                    // find view otpCountDown
+                                    View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_header_view, null);
+                                    TextView otpCountDown = voteSheetView.findViewById(R.id.voteSubtitle);
+
+
+                                    runOnUiThread(() -> {
+                                        // Stuff that updates the UI
+                                        otpCountDown.setText(openingTime);
+                                    });
+
+                                    // used to show vote button
                                     if (expireInt > 0) {
                                         // if expireInt is greater than current time
-                                        if (expireInt > currentTime) {
+                                        if (expireInt > nowTimestamp) {
                                             Log.d(TAG, "Show vote btn expire....:");
                                             // unshow vote button
                                             binding.voteButton.setVisibility(View.GONE);
                                         }
                                     } else {
                                         // if opening time is greater than current time
-                                        if (openingTimeInt > currentTime) {
+                                        if (openingTimeInt > nowTimestamp) {
                                             Log.d(TAG, "Show vote btn open....:");
                                             // show vote button
                                             binding.voteButton.setVisibility(View.VISIBLE);
@@ -3956,6 +3975,9 @@ public class CallActivity extends CallBaseActivity {
 
                                     Log.d(TAG, "listenToPolls....ID: " + pollId);
 
+                                    // get polls options
+                                    getPollsOptions();
+
                                     // dismiss otp dialog
                                     final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
                                     bottomSheetDialog.dismiss();
@@ -3965,10 +3987,24 @@ public class CallActivity extends CallBaseActivity {
                                     View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
                                     voteSheetDialog.setContentView(voteSheetView);
                                     voteSheetDialog.show();
+                                    // listen if vote sheet is dismissed
+                                    voteSheetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                        @Override
+                                        public void onDismiss(DialogInterface dialog) {
+                                            // dismiss polls
+//                                            finish();
+                                            userHasPolls = false;
+                                        }
+                                    });
 
                                     TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
                                     voteTitle.setText(jsonObject1.getString("title"));
+
+                                    if(!expireTime.equals("0")){
+//                                        countVoteTimer();
+                                    }
                                 }
+
                             }
                         }
 
@@ -4019,6 +4055,17 @@ public class CallActivity extends CallBaseActivity {
 
                         voteSharesCount = jsonArray.length();
 
+                        // assing shares count to textview
+
+                        // update shares
+                        View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_footer_view, null);
+                        TextView sharesText = voteSheetView.findViewById(R.id.voteSharesText);
+
+                        runOnUiThread(() -> {
+                            // Stuff that updates the UI
+                            sharesText.setText(String.valueOf(voteSharesCount));
+                        });
+
                     } catch (JSONException | IOException e) {
                         e.printStackTrace();
                     }
@@ -4034,6 +4081,8 @@ public class CallActivity extends CallBaseActivity {
                 }
             });
     }
+
+    boolean isRadioBtn = false;
 
     private void getPollsOptions(){
         apiService.getPollsOptions(credentials,pollId)
@@ -4054,11 +4103,45 @@ public class CallActivity extends CallBaseActivity {
                     String response = null;
                     try {
                         response = responseBody.string();
-                    } catch (IOException e) {
+
+                        JSONObject jsonObject = new JSONObject(response);
+                        JSONArray jsonArray = jsonObject.getJSONArray("options");
+
+
+                        // emptry array of holder
+                        ArrayList<JSONObject> optionHolder = new ArrayList<JSONObject>();
+
+                        // add json array to vote options
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            try {
+                                JSONObject jsonObject1 = jsonArray.getJSONObject(i);
+
+                                Log.d(TAG, "getPollsOptions: " + jsonObject1.toString());
+                                Log.d(TAG, "getPollsOptions: " + jsonObject1.getString("id"));
+                                Log.d(TAG, "getPollsOptions: " + jsonObject1.getString("pollOptionText"));
+                                Log.d(TAG, "getPollsOptions: " + jsonObject1.getString("pollId"));
+                                Log.d(TAG, "----------------------------------------------------");
+
+                                optionHolder.add(jsonObject1);
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        voteOptions = optionHolder;
+
+                        // log vote options count
+                        Log.d(TAG, "getPollsOptionsCount: " + voteOptions.size());
+
+                        // add vote options to radio group
+                        if(!isRadioBtn && voteOptions.size() > 0){
+                            isRadioBtn = true;
+                            addRadioGroupOptions();
+                        }
+                    } catch (IOException | JSONException e) {
                         e.printStackTrace();
                     }
-
-                    Log.d(TAG, "getPollsOptionsResponse....: " + response);
 
                 }
 
@@ -4074,6 +4157,42 @@ public class CallActivity extends CallBaseActivity {
                 }
             });
     }
+
+    public void addRadioGroupOptions() throws JSONException {
+
+        View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
+        RadioGroup radioGroupVote = voteSheetView.findViewById(R.id.radioGroupVote);
+
+        for (int i = 0; i <= voteOptions.size(); i++) {
+            JSONObject option = voteOptions.get(i);
+            RadioButton optionBtn = new RadioButton(this);
+            optionBtn.setId(Integer.parseInt(option.getString("id")));
+            Log.d(TAG, "addRadioGroupOptions....: " + voteOptions.get(i));
+            optionBtn.setText(option.getString("pollOptionText"));
+            optionBtn.setOnClickListener(this);
+            radioGroupVote.addView(optionBtn);
+        }
+
+    }
+
+    int lastId = 0;
+    @Override
+    public void onClick(View v) {
+        Log.d(TAG, " Name " + ((RadioButton)v).getText() +" Id is "+v.getId());
+
+        if(lastId == 0){
+            // assign current vote to last
+            lastId = v.getId();
+            // set current vote
+            setVote(v.getId());
+        }else{
+            // set current vote
+            setVote(v.getId());
+            // remove previous vote
+            removeVote(lastId);
+        }
+    }
+
 
     private void getVoteResults(){
         apiService.getVoteResults(credentials,pollId)
@@ -4125,14 +4244,21 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
-    private void countTimerLeftVote(Integer openingTime) {
+    private void countTimerLeftVote(int openingTime, int expireTime) {
         Log.d(TAG, "Start timer count......");
-
         // now
         long nowTimestamp = System.currentTimeMillis() / 1000;
         Log.d(TAG, "Now timestamp..: " + nowTimestamp);
         // parse nowTimestamp to int
         int now = Integer.parseInt(Long.toString(nowTimestamp));
+
+        if(now < openingTime){
+            Log.d(TAG, "Opening time is not reached yet");
+        }else if(now > expireTime){
+            Log.d(TAG, "Expire time is passed");
+        }else{
+            Log.d(TAG, "Opening time is reached");
+        }
 
         // calculate time left
         int timeLeft = openingTime - now;
@@ -4154,14 +4280,19 @@ public class CallActivity extends CallBaseActivity {
         View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_header_view, null);
         TextView otpCountDown = voteSheetView.findViewById(R.id.voteSubtitle);
 
-        if (timeLeft > 0) {
-            // set time left to textview
-            timeLeftVote = timeLeftString;
-            runOnUiThread(() -> {
-                // Stuff that updates the UI
-                otpCountDown.setText(timeLeftString);
-            });
-        }
+        runOnUiThread(() -> {
+            // Stuff that updates the UI
+            otpCountDown.setText("timeLeftString");
+        });
+
+//        if (timeLeft > 0) {
+//            // set time left to textview
+//            timeLeftVote = timeLeftString;
+//            runOnUiThread(() -> {
+//                // Stuff that updates the UI
+//                otpCountDown.setText(timeLeftString);
+//            });
+//        }
     }
 
     public void timers(){
@@ -4205,31 +4336,6 @@ public class CallActivity extends CallBaseActivity {
 //                self.timeLeft = "\(mins):\(secs)"
 //            }
 //        }
-    }
-
-
-    public void onRadioButtonClicked(View view) {
-        // Is the button now checked?
-        boolean checked = ((RadioButton) view).isChecked();
-
-        // Check which radio button was clicked
-        switch(view.getId()) {
-            case R.id.voteYes:
-                if (checked){
-                    Log.d(TAG,"voteYes.............:" + view.getId());
-                }
-                break;
-            case R.id.voteNo:
-                if (checked){
-                    Log.d(TAG,"voteNo.............");
-                }
-                break;
-            case R.id.voteAbstain:
-                if (checked){
-                    Log.d(TAG,"voteAbstain.............");
-                }
-                break;
-        }
     }
 
     private void setVote(int optionId){
@@ -4280,6 +4386,86 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
+    private void removeVote(int optionId){
+        JSONObject json = new JSONObject();
+        try {
+            json.put("optionId", optionId);
+            json.put("setTo", "");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        apiService.setVote(credentials,RequestBody.create(MediaType.parse("application/json"), json.toString()))
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Observer<ResponseBody>() {
+                @Override
+                public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                    mCompositeDisposable.add(d);
+                }
+
+                @Override
+                public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
+
+                    Log.d(TAG, "Listening to polls..........");
+
+                    // serialize response
+                    String response = null;
+                    try {
+                        response = responseBody.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Log.d(TAG, "onPollsResponse....: " + response);
+
+                }
+
+                @Override
+                public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    //todo show error to user
+                    Log.d(TAG, "pollsError: " + e.getMessage());
+                }
+
+                @Override
+                public void onComplete() {
+                    // unused atm
+                }
+            });
+    }
+
+    private void countVoteTimer(){
+        if(!isCounting){
+            isCounting = true;
+
+            Log.d(TAG, "IsCountingVote.....");
+
+            // show vote result sheet
+            final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+            View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_results, null);
+            bottomSheetDialog.setContentView(bottomSheetView);
+            bottomSheetDialog.show();
+
+            // call counter for 30s = 30000ms
+            new CountDownTimer(30000, 1000) {
+
+                public void onTick(long millisUntilFinished) {
+//                                            mTextField.setText("seconds remaining: " + millisUntilFinished / 1000);
+                    Log.d(TAG,"seconds remaining: " + millisUntilFinished / 1000);
+                }
+
+                public void onFinish() {
+//                                            mTextField.setText("done!");
+                    // dismiss result bottomsheet.
+                    final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+                    View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_results, null);
+                    bottomSheetDialog.setContentView(bottomSheetView);
+                    bottomSheetDialog.dismiss();
+
+                }
+            }.start();
+        }
+    }
 
     private void kikaoListener(){
         Log.d(TAG, "Calling kikao");
