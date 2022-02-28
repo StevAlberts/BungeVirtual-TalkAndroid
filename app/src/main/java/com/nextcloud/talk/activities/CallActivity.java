@@ -209,6 +209,10 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 
     private boolean speakerApproved = false;
 
+    private boolean speakStarted = false;
+
+    private boolean interveneStarted = false;
+
     private boolean handRaised = false;
 
     private boolean userVerified = false;
@@ -944,24 +948,38 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                 microphoneOn = !microphoneOn;
 
                 if (microphoneOn) {
+                    // start mic api
+                    Log.d(TAG, "start mic api..........::"+speakerApproved);
+                    if(!speakStarted && speakerApproved){
+                        startMicOn();
+                    }
+
+                    Log.d(TAG, "start mic api..........::"+interveneApproved);
+                    if(!interveneStarted && interveneApproved){
+                        startMicOn();
+                    }
+
+                    Log.d(TAG, "onMicrophoneClick: " + microphoneOn);
+                    toggleMedia(microphoneOn, false);
                     binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_white_24px);
                     updatePictureInPictureActions(R.drawable.ic_mic_white_24px,
                                                   getResources().getString(R.string.nc_pip_microphone_mute),
                                                   MICROPHONE_PIP_REQUEST_MUTE);
                 } else {
+                    Log.d(TAG, "onMicrophoneClick: " + microphoneOn);
+                    toggleMedia(microphoneOn, false);
                     binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
                     updatePictureInPictureActions(R.drawable.ic_mic_off_white_24px,
                                                   getResources().getString(R.string.nc_pip_microphone_unmute),
                                                   MICROPHONE_PIP_REQUEST_UNMUTE);
                 }
 
-                Log.d(TAG, "onMicrophoneClick: " + microphoneOn);
-                toggleMedia(microphoneOn, false);
+
             } else {
-                binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_white_24px);
-                pulseAnimation.start();
                 Log.d(TAG, "onMicrophoneClick else: " + microphoneOn);
                 toggleMedia(true, false);
+                binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_white_24px);
+                pulseAnimation.start();
             }
 
             if (isVoiceOnlyCall && !isConnectionEstablished()) {
@@ -981,39 +999,24 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                 onRequestPermissionsResult(100, PERMISSIONS_MICROPHONE, new int[]{1});
             }
         }
+    }
 
-        Log.d(TAG, "We are here....");
-//        if (allocatedSpeakTime >0 && (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)) || binding.requestToInterveneButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel)))){
-//            speakerhasUnmuted = true;
-//            Log.d(TAG, "We are not here...."+speakTimerStarted);
-//            if (!speakTimerStarted){
+    public void startMicOn(){
+        Log.d(TAG, "Started speaking unmute....");
 
+        //make api request that speaker has started speaking
 
+        JSONObject json = new JSONObject();
+        try {
+            json.put("started", true);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
-                // start all timers
-//                startTimer();
-
-                //make api request that speaker has started speaking
-
-                JSONObject json = new JSONObject();
-                try {
-                    json.put("token", roomToken);
-                    json.put("userId", conversationUser.getUserId());
-                    json.put("activityType", 0);
-                    json.put("approved", true);
-                    json.put("started", true);
-                    json.put("paused", false);
-                    json.put("canceled", false);
-                    json.put("talkingSince", System.currentTimeMillis());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+        Log.d(TAG,"Calling apiservice...: "+json);
 
 
-                Log.d(TAG,"Calling apiservice");
-
-
-                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 //                int activeSession = -99;
 //
 //                if (binding.requestToSpeakButton.getText().toString().equalsIgnoreCase(getResources().getString(R.string.action_cancel))){
@@ -1024,74 +1027,73 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 //                                                      0);
 //                }
 
-                if (speakerApproved) {
-                    // log that speaker has started speaking
-                    Log.d(TAG, "Calling start for speak: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
-                        0));
-                    apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
-                            0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
-                            json.toString()))
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Observer<RequestToActionGenericResult>() {
-                            @Override
-                            public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
-                                // unused atm
-                            }
+        if (speakerApproved) {
+            // log that speaker has started speaking
+            Log.d(TAG, "Calling start for speak: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                0));
+            apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_SPEAK_ID,
+                    0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
+                    json.toString()))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<RequestToActionGenericResult>() {
+                    @Override
+                    public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                        // unused atm
+                    }
 
-                            @Override
-                            public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
-                                // log started speak
-                                Log.d(TAG, "Started speak timer");
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                        // log started speak
+                        Log.d(TAG, "Started speak timer");
 
-                            }
+                    }
 
-                            @Override
-                            public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
 
-                            }
+                    }
 
-                            @Override
-                            public void onComplete() {
-                                // unused atm
-                            }
-                        });
+                    @Override
+                    public void onComplete() {
+                        // unused atm
+                    }
+                });
 
-                }
+        }
 
-                if (interveneApproved){
-                    // log that speaker has started intervene
-                    Log.d(TAG, "Calling start for intervene: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
-                        0));
-                    apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
-                            0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
-                            json.toString()))
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Observer<RequestToActionGenericResult>() {
-                            @Override
-                            public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
-                                // unused atm
-                            }
+        if (interveneApproved){
+            // log that speaker has started intervene
+            Log.d(TAG, "Calling start for intervene: "+sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                0));
+            apiService.userUnMuted(credentials, sharedPref.getInt(KikaoUtilitiesConstants.ACTIVE_SESSION_REQUEST_TO_INTERVENE_ID,
+                    0) , roomToken, RequestBody.create(MediaType.parse("application/json"),
+                    json.toString()))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<RequestToActionGenericResult>() {
+                    @Override
+                    public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+                        // unused atm
+                    }
 
-                            @Override
-                            public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
-                                Log.d(TAG, "Started intervene timer:");
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull RequestToActionGenericResult requestToActionGenericResult) {
+                        Log.d(TAG, "Started intervene timer:");
 
-                            }
+                    }
 
-                            @Override
-                            public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
 
-                            }
+                    }
 
-                            @Override
-                            public void onComplete() {
-                                // unused atm
-                            }
-                        });
-                }
-
+                    @Override
+                    public void onComplete() {
+                        // unused atm
+                    }
+                });
+        }
     }
 
     public void onCameraClick() {
@@ -1464,9 +1466,9 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         int apiVersion = ApiUtils.getConversationApiVersion(conversationUser, new int[]{ApiUtils.APIv4, 1});
 
         Log.d(TAG, "joinRoomAndCall");
-        Log.d(TAG, "   baseUrl= " + baseUrl);
-        Log.d(TAG, "   roomToken= " + roomToken);
-        Log.d(TAG, "   callSession= " + callSession);
+        Log.d(TAG, "baseUrl= " + baseUrl);
+        Log.d(TAG, "roomToken= " + roomToken);
+        Log.d(TAG, "callSession= " + callSession);
 
         String url = ApiUtils.getUrlForParticipantsActive(apiVersion, baseUrl, roomToken);
         Log.d(TAG, "   url= " + url);
@@ -3296,7 +3298,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         if(speakResult != null){
             for (RequestToActionGenericResult activity : requestResultList) {
                 if (Objects.equals(activity.getId(), speakResult.getId())) {
-                    Log.d(TAG, "New speak request to action listenResponses........");
+                    Log.d(TAG, "New speak request to action listenResponses........: " + activity.getTalkingSince());
 
                     if (activity.getApproved()) {
                         Log.d(TAG, "Approved speak request to action listenResponses........");
@@ -3308,6 +3310,8 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 
                         // check if meeting started
                         if(activity.getStarted()) {
+
+                            speakStarted = true;
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
@@ -3331,6 +3335,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                         if(!interveneApproved) {
                             // hide media controls if not approved intervene
                             hideControls();
+                            speakStarted = false;
                             showTimerButton(false);
                             Log.d(TAG, "Hide media controls if not approved intervene........");
                         }
@@ -3352,6 +3357,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                     System.out.println("SpeakResult is not found.");
                     speakResult = null;
                     speakerApproved = false;
+                    speakStarted = false;
                     handleCancelSpeak();
                 }
             }
@@ -3375,6 +3381,8 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                         // check if meeting started
                         if(activity.getStarted()) {
 
+                            interveneStarted = true;
+
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
                             if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL)) {
@@ -3396,6 +3404,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                         Log.d(TAG,"No approved speak.....");
                         if(!interveneApproved) {
                             // hide media controls if not approved intervene
+                            interveneStarted = false;
                             hideControls();
                             showTimerButton(false);
                             Log.d(TAG, "Hide media controls if not approved intervene........");
@@ -3418,6 +3427,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                     System.out.println("SpeakResult is not found.");
                     interveneResult = null;
                     interveneApproved = false;
+                    interveneStarted = false;
                     handleCancelIntervene();
                 }
             }
@@ -3492,9 +3502,9 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         videoOn = false;
 
         //disable audioOn = false
-        toggleMedia(false, false);
+//        toggleMedia(audioOn, false);
         //disable video
-        toggleMedia(videoOn, true);
+        toggleMedia(false, false);
 
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
         binding.microphoneButton.setVisibility(View.GONE);
@@ -3526,7 +3536,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         //disable audioOn = false
         toggleMedia(false, false);
         //disable video
-        toggleMedia(videoOn, true);
+//        toggleMedia(videoOn, true);
 
         if (binding.requestsLinearLayout!=null){
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
