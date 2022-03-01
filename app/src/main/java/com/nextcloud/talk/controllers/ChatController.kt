@@ -271,6 +271,7 @@ class ChatController(args: Bundle) :
         val shouldRepeat = CapabilitiesUtil.hasSpreedFeatureCapability(conversationUser, "webinary-lobby")
         if (shouldRepeat) {
             checkingLobbyStatus = true
+            checkLobbyState()
         }
 
         if (conversationUser != null) {

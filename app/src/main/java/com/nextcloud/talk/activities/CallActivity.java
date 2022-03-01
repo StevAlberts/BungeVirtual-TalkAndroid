@@ -681,17 +681,17 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         Log.d(TAG, "initGridAdapter");
         int columns;
         int participantsInGrid = participantDisplayItems.size();
-        if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            if (participantsInGrid > 2) {
+        if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (participantsInGrid > 3) {
                 columns = 2;
             } else {
                 columns = 1;
             }
         } else {
             if (participantsInGrid > 2) {
-                columns = 3;
-            } else if (participantsInGrid > 1) {
                 columns = 2;
+            } else if (participantsInGrid > 1) {
+                columns = 1;
             } else {
                 columns = 1;
             }
@@ -3462,7 +3462,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         // reset request to action
         binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
         binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                    R.color.colorPrimary));
+                    R.color.kikao_danger));
     }
 
 
