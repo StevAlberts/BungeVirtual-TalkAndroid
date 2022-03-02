@@ -977,7 +977,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 
             } else {
                 Log.d(TAG, "onMicrophoneClick else: " + microphoneOn);
-                toggleMedia(true, false);
+                toggleMedia(microphoneOn, false);
                 binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_white_24px);
                 pulseAnimation.start();
             }
@@ -2990,7 +2990,6 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
             e.printStackTrace();
         }
 
-//        requestToSpeakStartLoading();
 
 
         Log.d(TAG,"Calling api service");
@@ -3472,7 +3471,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         // reset request to action
         binding.requestToInterveneButton.setText(getResources().getString(R.string.kikao_request_to_intervene));
         binding.requestToInterveneButton.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),
-                    R.color.colorPrimary));
+                    R.color.kikao_danger));
     }
 
 
@@ -3502,9 +3501,9 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         videoOn = false;
 
         //disable audioOn = false
-//        toggleMedia(audioOn, false);
+        toggleMedia(false, true);
         //disable video
-        toggleMedia(false, false);
+        toggleMedia(audioOn, false);
 
         binding.microphoneButton.getHierarchy().setPlaceholderImage(R.drawable.ic_mic_off_white_24px);
         binding.microphoneButton.setVisibility(View.GONE);
@@ -3514,7 +3513,6 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 
         binding.switchSelfVideoButton.setVisibility(View.GONE);
         binding.selfVideoRenderer.setVisibility(View.GONE);
-
     }
 
     private void showTimerButton(boolean show){

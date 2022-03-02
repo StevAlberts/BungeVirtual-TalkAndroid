@@ -252,7 +252,7 @@
                 android:layout_marginStart="5dp"
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
-                android:background="@color/colorPrimary"
+                android:background="@color/kikao_danger"
                 android:ellipsize="marquee"
                 android:padding="5dp"
                 android:text="@string/kikao_request_to_intervene"
