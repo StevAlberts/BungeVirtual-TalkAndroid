@@ -38,6 +38,7 @@ import android.content.res.Resources
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.drawable.ColorDrawable
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
@@ -306,6 +307,8 @@ class ChatController(args: Bundle) :
                         try {
                             setupMentionAutocomplete()
                             checkReadOnlyState()
+                            
+                            Log.d(TAG,"Checking lobby...")
                             checkLobbyState()
 
                             if (!inConversation) {
@@ -1153,9 +1156,7 @@ class ChatController(args: Bundle) :
                 sb.append(resources!!.getText(R.string.nc_lobby_waiting))
                     .append("\n\n")
 
-                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer !=
-                    0L
-                ) {
+                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer != 0L) {
                     val timestamp = currentConversation?.lobbyTimer ?: 0
                     val stringWithStartDate = String.format(
                         resources!!.getString(R.string.nc_lobby_start_date),
@@ -1174,23 +1175,37 @@ class ChatController(args: Bundle) :
 
                 val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
 
+                lobbyPlayer.apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .build()
+                    )
+                    setDataSource(audioUrl)
+                    prepare() // might take long! (for buffering, etc)
+                    // play the media player audio
+                    if(!lobbyPlayer.isPlaying){
+                        lobbyPlayer.start()
+                    }
+                }
+
                 // set the media player audio stream type
-                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
-
-                // set the media player data source
-                lobbyPlayer.setDataSource(audioUrl)
-
-                // set the media player on completion listener
+//                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
+//
+//                // set the media player data source
+//                lobbyPlayer.setDataSource(audioUrl)
+//
+//                // prepare the media player
+//                lobbyPlayer.prepare()
+//
+//                // set the media player on completion listener
 //                lobbyPlayer.setOnCompletionListener {
 //                    // play the media player audio
-//                    anthemPlayer?.start()
+//                    lobbyPlayer.start()
 //                }
 
-                // prepare the media player
-                lobbyPlayer.prepare()
 
-                // play the media player audio
-                lobbyPlayer.start()
 
             } else {
                 binding.lobby.lobbyView.visibility = View.GONE
@@ -1220,7 +1235,9 @@ class ChatController(args: Bundle) :
             Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
 
             // stop anthem
-//            lobbyPlayer.stop()
+            if(lobbyPlayer.isPlaying){
+                lobbyPlayer.stop()
+            }
         }
     }
 

@@ -165,6 +165,7 @@ import javax.inject.Inject;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -186,7 +187,7 @@ import okhttp3.ResponseBody;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 
 @AutoInjector(NextcloudTalkApplication.class)
-public class CallActivity extends CallBaseActivity implements View.OnClickListener {
+public class CallActivity extends CallBaseActivity {
 
     @Inject
     NcApi ncApi;
@@ -682,7 +683,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
     }
 
     private void initGridAdapter() {
-        Log.d(TAG, "initGridAdapter");
+        Log.d(TAG, "initGridAdapter...:"+participantDisplayItems.size());
         int columns;
         int participantsInGrid = participantDisplayItems.size();
         if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -725,19 +726,22 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
             binding.conversationRelativeLayout,
             binding.callInfosLinearLayout,
             columns,
-            isVoiceOnlyCall);
+            false // isVoiceOnlyCall set to false
+        );
+
+
         binding.gridview.setAdapter(participantsAdapter);
 
         // used to run the camera on the main thread
-        runOnUiThread(() -> {
-            if (isInPipMode) {
-                updateUiForPipMode();
-            }
-        });
+//        runOnUiThread(() -> {
+//            if (isInPipMode) {
+//                updateUiForPipMode();
+//            }
+//        });
 
-//        if (isInPipMode) {
-//            updateUiForPipMode();
-//        }
+        if (isInPipMode) {
+            updateUiForPipMode();
+        }
     }
 
 
@@ -745,11 +749,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         if (isVoiceOnlyCall) {
             onMicrophoneClick();
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(PERMISSIONS_CALL, 100);
-            } else {
-                onRequestPermissionsResult(100, PERMISSIONS_CALL, new int[]{1, 1});
-            }
+            requestPermissions(PERMISSIONS_CALL, 100);
         }
 
     }
@@ -2767,7 +2767,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
 
     public void updateUiForPipMode() {
         Log.d(TAG, "updateUiForPipMode");
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                                                                              ViewGroup.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, 0, 0, 0);
         binding.gridview.setLayoutParams(params);
@@ -2891,57 +2891,23 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
         bioAuthPrompt();
 
         // open vote sheet
-        binding.voteButton.setOnClickListener(l ->{
-            Log.d(TAG, "Vote button clicked..");
+        binding.voteButton.setOnClickListener(l -> {
+                Log.d(TAG, "Vote button clicked..");
 
-            final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
+                final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
 
-            View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_main, null);
+                View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_main, null);
 
-            bottomSheetDialog.setContentView(bottomSheetView);
-            bottomSheetDialog.show();
+                bottomSheetDialog.setContentView(bottomSheetView);
+                bottomSheetDialog.show();
 
-            final Button fingerprintBtn = bottomSheetView.findViewById(R.id.fingerprintRequestBtn);
-            fingerprintBtn.setOnClickListener(v -> {
-                Log.d(TAG, "fingerprintBtn button clicked..");
-                biometricPrompt.authenticate(promptInfo);
-                bottomSheetDialog.dismiss();
-            });
+                final Button fingerprintBtn = bottomSheetView.findViewById(R.id.fingerprintRequestBtn);
+                fingerprintBtn.setOnClickListener(v -> {
+                    Log.d(TAG, "fingerprintBtn button clicked..");
+                    biometricPrompt.authenticate(promptInfo);
+                    bottomSheetDialog.dismiss();
+                });
         });
-
-        // Listen to vote changes
-        View bottomSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
-        RadioGroup voteRadio = bottomSheetView.findViewById(R.id.radioGroup);
-        voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
-            Log.d(TAG, "voteRadio checkedId: "+checkedId);
-            Log.d(TAG, "voteRadio checkedId: "+group.getCheckedRadioButtonId());
-            Log.d(TAG, "voteRadio checkedId: "+group.getAccessibilityClassName());
-            Log.d(TAG, "voteRadio checkedId: "+group.getClass().getName());
-            Log.d(TAG, "voteRadio checkedId: "+group.getId());
-
-            switch(checkedId){
-                case R.id.voteYes:
-                    // do operations specific to this selection
-                    Log.d(TAG,"VotedYes..:"+checkedId);
-                    // toast
-                    Toast.makeText(getApplicationContext(), "Voted Yes", Toast.LENGTH_SHORT).show();
-                    break;
-                case R.id.voteNo:
-                    // do operations specific to this selection
-                    Log.d(TAG,"VotedNo..:"+checkedId);
-                    // toast
-                    Toast.makeText(getApplicationContext(), "Voted No", Toast.LENGTH_SHORT).show();
-                    break;
-                case R.id.voteAbstain:
-                    // do operations specific to this selection
-                    Log.d(TAG,"VotedMaybe..:"+checkedId);
-                    // toast
-                    Toast.makeText(getApplicationContext(), "Voted Abstain", Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        });
-
-
 
         binding.callControlRaiseHand.setOnClickListener(l ->{
 
@@ -3874,7 +3840,6 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                                     View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_header_view, null);
                                     TextView otpCountDown = voteSheetView.findViewById(R.id.voteSubtitle);
 
-
                                     runOnUiThread(() -> {
                                         // Stuff that updates the UI
                                         otpCountDown.setText(openingTime);
@@ -4005,6 +3970,52 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                                         }
                                     });
 
+                                    // use this to set vote
+                                    RadioGroup voteRadio = voteSheetDialog.findViewById(R.id.radioGroup);
+                                    voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
+
+                                        switch (checkedId) {
+                                            case R.id.voteYes:
+                                                // do operations specific to this selection
+                                                try {
+                                                    Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getString("pollOptionText"));
+                                                    Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getInt("id"));
+                                                    placeVote(voteOptions.get(0).getInt("id"));
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                // toast
+                                                Toast.makeText(getApplicationContext(), "Voted Yes", Toast.LENGTH_SHORT).show();
+                                                break;
+                                            case R.id.voteNo:
+                                                // do operations specific to this selection
+                                                try {
+                                                    Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getString("pollOptionText"));
+                                                    Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getInt("id"));
+                                                    placeVote(voteOptions.get(1).getInt("id"));
+
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                // toast
+                                                Toast.makeText(getApplicationContext(), "Voted No", Toast.LENGTH_SHORT).show();
+                                                break;
+                                            case R.id.voteAbstain:
+                                                // do operations specific to this selection
+                                                try {
+                                                    Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getString("pollOptionText"));
+                                                    Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getInt("id"));
+                                                    placeVote(voteOptions.get(2).getInt("id"));
+
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                // toast
+                                                Toast.makeText(getApplicationContext(), "Voted Abstain", Toast.LENGTH_SHORT).show();
+                                                break;
+                                        }
+                                    });
+
                                     TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
                                     voteTitle.setText(jsonObject1.getString("title"));
 
@@ -4102,6 +4113,7 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                     mCompositeDisposable.add(d);
                 }
 
+                @RequiresApi(api = Build.VERSION_CODES.N)
                 @Override
                 public void onNext(@io.reactivex.annotations.NonNull ResponseBody responseBody) {
 
@@ -4142,11 +4154,6 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
                         // log vote options count
                         Log.d(TAG, "getPollsOptionsCount: " + voteOptions.size());
 
-                        // add vote options to radio group
-                        if(!isRadioBtn && voteOptions.size() > 0){
-                            isRadioBtn = true;
-                            addRadioGroupOptions();
-                        }
                     } catch (IOException | JSONException e) {
                         e.printStackTrace();
                     }
@@ -4166,36 +4173,18 @@ public class CallActivity extends CallBaseActivity implements View.OnClickListen
             });
     }
 
-    public void addRadioGroupOptions() throws JSONException {
-
-        View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_sheet_vote, null);
-        RadioGroup radioGroupVote = voteSheetView.findViewById(R.id.radioGroupVote);
-
-        for (int i = 0; i <= voteOptions.size(); i++) {
-            JSONObject option = voteOptions.get(i);
-            RadioButton optionBtn = new RadioButton(this);
-            optionBtn.setId(Integer.parseInt(option.getString("id")));
-            Log.d(TAG, "addRadioGroupOptions....: " + voteOptions.get(i));
-            optionBtn.setText(option.getString("pollOptionText"));
-            optionBtn.setOnClickListener(this);
-            radioGroupVote.addView(optionBtn);
-        }
-
-    }
-
     int lastId = 0;
-    @Override
-    public void onClick(View v) {
-        Log.d(TAG, " Name " + ((RadioButton)v).getText() +" Id is "+v.getId());
+    public void placeVote(int voteId) {
+        Log.d(TAG, "Vote Id is...: "+voteId);
 
         if(lastId == 0){
             // assign current vote to last
-            lastId = v.getId();
+            lastId = voteId;
             // set current vote
-            setVote(v.getId());
+            setVote(voteId);
         }else{
             // set current vote
-            setVote(v.getId());
+            setVote(voteId);
             // remove previous vote
             removeVote(lastId);
         }
