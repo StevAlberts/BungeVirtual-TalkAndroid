@@ -687,20 +687,19 @@ public class CallActivity extends CallBaseActivity {
         int columns;
         int participantsInGrid = participantDisplayItems.size();
         if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            if (participantsInGrid >= 10) {
-                columns = 7;
+            if (participantsInGrid > 2) {
+                columns = 1;
             } else {
-                columns = 7;
+                columns = 0;
             }
         } else {
-            if (participantsInGrid <= 1000) {
+            if (participantsInGrid > 5) {
 //                participantDisplayItems.clear();
-                columns = 7;
-            } else{
-//            } else if (participantsInGrid > 1) {
-//                columns = 7;
-//            } else {
-                columns = 7;
+                columns = 1;
+            } else if (participantsInGrid > 1) {
+                columns = 1;
+            } else {
+                columns = 1;
             }
         }
 
@@ -727,7 +726,7 @@ public class CallActivity extends CallBaseActivity {
             participantDisplayItems,
             binding.conversationRelativeLayout,
             binding.callInfosLinearLayout,
-            columns=7,
+            columns,
             false // isVoiceOnlyCall set to false
         );
 
