@@ -53,6 +53,7 @@
                 android:gravity="center"
                 android:rowCount="1"
                 android:numColumns="1"
+                android:clickable="false"
                 android:scrollbars="vertical"
                 android:stretchMode="columnWidth">
 
@@ -70,7 +71,7 @@
                     android:layout_gravity="center"
                     android:layout_margin="16dp"
                     android:clickable="false"
-                    android:visibility="visible"
+                    android:visibility="gone"
                     tools:visibility="visible" />
 
                 <com.facebook.drawee.view.SimpleDraweeView

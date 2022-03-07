@@ -687,18 +687,20 @@ public class CallActivity extends CallBaseActivity {
         int columns;
         int participantsInGrid = participantDisplayItems.size();
         if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            if (participantsInGrid > 3) {
-                columns = 2;
+            if (participantsInGrid >= 10) {
+                columns = 7;
             } else {
-                columns = 1;
+                columns = 7;
             }
         } else {
-            if (participantsInGrid > 2) {
-                columns = 2;
-            } else if (participantsInGrid > 1) {
-                columns = 1;
-            } else {
-                columns = 1;
+            if (participantsInGrid <= 1000) {
+//                participantDisplayItems.clear();
+                columns = 7;
+            } else{
+//            } else if (participantsInGrid > 1) {
+//                columns = 7;
+//            } else {
+                columns = 7;
             }
         }
 
@@ -725,7 +727,7 @@ public class CallActivity extends CallBaseActivity {
             participantDisplayItems,
             binding.conversationRelativeLayout,
             binding.callInfosLinearLayout,
-            columns,
+            columns=7,
             false // isVoiceOnlyCall set to false
         );
 
@@ -1799,6 +1801,7 @@ public class CallActivity extends CallBaseActivity {
         Log.d(TAG, "Received signaling message screenshare...: " + ncSignalingMessage.getRoomType().equals("screen"));
 
         if (ncSignalingMessage.getRoomType().equals("video") || ncSignalingMessage.getRoomType().equals("screen")) {
+//          if (ncSignalingMessage.getRoomType().equals("video")){
             MagicPeerConnectionWrapper magicPeerConnectionWrapper =
                 getPeerConnectionWrapperForSessionIdAndType(ncSignalingMessage.getFrom(),
                                                             ncSignalingMessage.getRoomType(), false);
