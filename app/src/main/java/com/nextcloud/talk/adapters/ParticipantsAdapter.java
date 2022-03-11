@@ -1,6 +1,7 @@
 package com.nextcloud.talk.adapters;
 
 import android.content.Context;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,14 +31,14 @@ public class ParticipantsAdapter extends BaseAdapter {
 
     private static final String TAG = "ParticipantsAdapter";
 
-    private final Context mContext;
+    private final CallActivity mContext;
     private final ArrayList<ParticipantDisplayItem> participantDisplayItems;
     private final RelativeLayout gridViewWrapper;
     private final LinearLayout callInfosLinearLayout;
     private final int columns;
     private final boolean isVoiceOnlyCall;
 
-    public ParticipantsAdapter(Context mContext,
+    public ParticipantsAdapter(CallActivity mContext,
                                Map<String, ParticipantDisplayItem> participantDisplayItems,
                                RelativeLayout gridViewWrapper,
                                LinearLayout callInfosLinearLayout,
@@ -87,7 +88,7 @@ public class ParticipantsAdapter extends BaseAdapter {
                 surfaceViewRenderer.setZOrderMediaOverlay(false);
                 // disabled because it causes some devices to crash
                 surfaceViewRenderer.setEnableHardwareScaler(false);
-                surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
+                surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_BALANCED);
             } catch (Exception e) {
                 Log.e(TAG, "error while initializing surfaceViewRenderer", e);
             }
@@ -155,12 +156,26 @@ public class ParticipantsAdapter extends BaseAdapter {
         int itemHeight = (gridViewWrapper.getHeight() - headerHeight - callControlsHeight) / getRowsCount(getCount());
         int itemMinHeight = Math.round(mContext.getResources().getDimension(R.dimen.call_grid_item_min_height));
         if (itemHeight < itemMinHeight) {
-            itemHeight = itemMinHeight;
+            itemMinHeight = itemHeight;
         }
-        return itemHeight;
+//
+        return itemMinHeight;
+
+//defining the display metrics
+//        DisplayMetrics displayMetrics = new DisplayMetrics();
+//        mContext.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+//        int height = displayMetrics.heightPixels;
+//        int width = displayMetrics.widthPixels;
+//
+//
+//        float aspect_ratio = width / height;
+//        float itemHeight = (1 / aspect_ratio ) * width;
+//        return (int) itemHeight;
     }
 
+
     private int getRowsCount(int items) {
+//        int rows = (int) Math.ceil((double) items / (double) columns);
         int rows = (int) Math.ceil((double) items / (double) columns);
         if (rows == 0) {
             rows = 1;

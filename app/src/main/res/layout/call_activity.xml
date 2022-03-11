@@ -43,6 +43,7 @@
             android:layout_weight="1"
             android:background="@color/grey950"
             android:visibility="visible"
+            android:orientation="vertical"
             tools:visibility="visible">
 
             <GridView
@@ -50,7 +51,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:numColumns="2"
+                android:rowCount="1"
+                android:numColumns="1"
+                android:clickable="false"
                 android:scrollbars="vertical"
                 android:stretchMode="columnWidth">
 
@@ -68,7 +71,7 @@
                     android:layout_gravity="center"
                     android:layout_margin="16dp"
                     android:clickable="false"
-                    android:visibility="invisible"
+                    android:visibility="gone"
                     tools:visibility="visible" />
 
                 <com.facebook.drawee.view.SimpleDraweeView
@@ -77,6 +80,7 @@
                     android:layout_height="40dp"
                     android:layout_gravity="center_horizontal|bottom"
                     android:layout_marginBottom="20dp"
+                    android:alpha="0.7"
                     app:placeholderImage="@drawable/ic_switch_video_white_24px"
                     app:roundAsCircle="true" />
             </FrameLayout>
@@ -252,7 +256,7 @@
                 android:layout_marginStart="5dp"
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
-                android:background="@color/kikao_danger"
+                android:background="@color/nc_darkRed"
                 android:ellipsize="marquee"
                 android:padding="5dp"
                 android:text="@string/kikao_request_to_intervene"

@@ -191,6 +191,7 @@ import java.util.ArrayList
 import java.util.Date
 import java.util.HashMap
 import java.util.Objects
+import java.util.*
 import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 
@@ -351,11 +352,16 @@ class ChatController(args: Bundle) :
 
                     override fun onComplete() {
                         if (shouldRepeat) {
-                            if (lobbyTimerHandler == null) {
-                                lobbyTimerHandler = Handler()
+                            if (lobbyTimerHandler != null) {
+                                lobbyTimerHandler != Handler()
+                                Log.d(TAG,"STOP LOBBY ANTHEM")
+
+                                // stop anthem
+                                lobbyPlayer.stop()
+
                             }
 
-                            lobbyTimerHandler?.postDelayed({ getRoomInfo() }, LOBBY_TIMER_DELAY)
+//                            lobbyTimerHandler?.postDelayed({ getRoomInfo() }, LOBBY_TIMER_DELAY)
                         }
                     }
                 })
@@ -382,6 +388,7 @@ class ChatController(args: Bundle) :
                             roomToken = conversation.token
                             currentConversation = conversation
                             setTitle()
+                            checkLobbyState()
                             getRoomInfo()
                             break
                         }
@@ -1158,25 +1165,138 @@ class ChatController(args: Bundle) :
         }
     }
 
-    private fun checkLobbyState() {
-        if (currentConversation != null &&
-            currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
-            isAlive()
-        ) {
+//    private fun checkLobbyState() {
+//        // initializing media player
+//        val lobbyPlayer = MediaPlayer()
+//
+//        if (currentConversation != null &&
+//            currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
+//            isAlive()
+//        ) {
+//
+//            if (!checkingLobbyStatus) {
+//                getRoomInfo()
+//            }
+//
+//            if (currentConversation?.shouldShowLobby(conversationUser) ?: false {
+//                binding.lobby.lobbyView.visibility = View.VISIBLE
+//                binding.messagesListView.visibility = View.GONE
+//                binding.messageInputView.visibility = View.GONE
+//                binding.progressBar.visibility = View.GONE
+//
+//                val sb = StringBuilder()
+//                sb.append(resources!!.getText(R.string.nc_lobby_waiting))
+//                    .append("\n\n")
+//
+//                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer !=
+//                    0L
+//                ) {
+//                    val timestamp = currentConversation?.lobbyTimer ?: 0
+//                    val stringWithStartDate = String.format(
+//                        resources!!.getString(R.string.nc_lobby_start_date),
+//                        DateUtils.getLocalDateStringFromTimestampForLobby(timestamp)
+//                    )
+//                    val relativeTime = DateUtils.relativeStartTimeForLobby(timestamp, resources!!)
+//
+//                    sb.append("$stringWithStartDate - $relativeTime")
+//                        .append("\n\n")
+//                }
+//
+//                sb.append(currentConversation!!.description)
+//                binding.lobby.lobbyTextView.text = sb.toString()
+//
+//                // play lobby anthem
+//
+//                val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
+//
+//                // set the media player audio stream type
+//                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
+//
+//                // set the media player data source
+//                lobbyPlayer.setDataSource(audioUrl)
+//
+//                // set the media player on completion listener
+//                lobbyPlayer.setOnCompletionListener {
+//                    // play the media player audio
+//                    anthemPlayer?.start()
+////                }
+//
+//                // prepare the media player
+//                lobbyPlayer.prepare()
+//
+//                // play the media player audio
+//                lobbyPlayer.start()
+//            } else {
+//                binding.lobby.lobbyView.visibility = View.GONE
+//                binding.messagesListView.visibility = View.VISIBLE
+//                binding.messageInputView.inputEditText?.visibility = View.VISIBLE
+//                Log.d(TAG,"STOP LOBBY ANTHEM")
+//
+//                // stop anthem
+//                lobbyPlayer.stop()
+//                if (isFirstMessagesProcessing && pastPreconditionFailed) {
+//                    pastPreconditionFailed = false
+//                    pullChatMessages(0)
+//                } else if (futurePreconditionFailed) {
+//                    futurePreconditionFailed = false
+//                    pullChatMessages(1)
+//                }
+//            }
+//        } else {
+//            binding.lobby.lobbyView.visibility = View.GONE
+//            binding.messagesListView.visibility = View.VISIBLE
+//            binding.messageInputView.inputEditText?.visibility = View.VISIBLE
+//
+////            Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
+////
+////            // stop anthem
+////            lobbyPlayer.stop()
+//        }
+//    }
+private fun checkLobbyState() {
+    // initializing media player
+    val lobbyPlayer = MediaPlayer()
 
-            if (!checkingLobbyStatus) {
-                getRoomInfo()
-            }
+    if (currentConversation != null &&
+        currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
+        isAlive()
+    ) {
 
-            if (currentConversation?.shouldShowLobby(conversationUser) ?: false) {
-                binding.lobby.lobbyView.visibility = View.VISIBLE
-                binding.messagesListView.visibility = View.GONE
-                binding.messageInputView.visibility = View.GONE
-                binding.progressBar.visibility = View.GONE
+        if (checkingLobbyStatus) {
+            getRoomInfo()
+        }
 
-                val sb = StringBuilder()
-                sb.append(resources!!.getText(R.string.nc_lobby_waiting))
-                    .append("\n\n")
+        if (currentConversation?.shouldShowLobby(conversationUser) ?: false) {
+            binding.lobby.lobbyView.visibility = View.VISIBLE
+            binding.messagesListView.visibility = View.GONE
+            binding.messageInputView.visibility = View.GONE
+            binding.progressBar.visibility = View.GONE
+
+            val sb = StringBuilder()
+            sb.append(resources!!.getText(R.string.nc_lobby_waiting))
+                .append("\n\n")
+
+            // play lobby anthem
+
+            val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
+
+            // set the media player audio stream type
+            lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
+
+            // set the media player data source
+            lobbyPlayer.setDataSource(audioUrl)
+
+            // set the media player on completion listener
+            lobbyPlayer.setOnCompletionListener {
+                // play the media player audio
+                anthemPlayer?.start()
+//                }
+
+                // prepare the media player
+                lobbyPlayer.prepare()
+
+                // play the media player audio
+                lobbyPlayer.start()
 
                 if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer !=
                     0L
@@ -1198,6 +1318,10 @@ class ChatController(args: Bundle) :
                 binding.lobby.lobbyView.visibility = View.GONE
                 binding.messagesListView.visibility = View.VISIBLE
                 binding.messageInputView.inputEditText?.visibility = View.VISIBLE
+                Log.d(TAG, "STOP LOBBY ANTHEM")
+
+                // stop anthem
+                lobbyPlayer.stop()
                 if (isFirstMessagesProcessing && pastPreconditionFailed) {
                     pastPreconditionFailed = false
                     pullChatMessages(0)
@@ -1212,7 +1336,7 @@ class ChatController(args: Bundle) :
             binding.messageInputView.inputEditText?.visibility = View.VISIBLE
         }
     }
-
+}
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         if (resultCode != RESULT_OK) {
             Log.e(TAG, "resultCode for received intent was != ok")
@@ -1256,6 +1380,7 @@ class ChatController(args: Bundle) :
                     .setTitle(confirmationQuestion)
                     .setMessage(filenamesWithLinebreaks.toString())
                     .setPositiveButton(R.string.nc_yes) { v ->
+                        .setPositiveButton(R.string.nc_yes) {
                         if (UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
                             uploadFiles(filesToUpload, false)
                         } else {
@@ -1466,6 +1591,7 @@ class ChatController(args: Bundle) :
         bundle.putParcelable(BundleKeys.KEY_USER_ENTITY, conversationUser)
         bundle.putString(BundleKeys.KEY_ROOM_TOKEN, roomToken)
         bundle.putBoolean(BundleKeys.KEY_ROOM_ONE_TO_ONE, inOneToOneCall())
+        bundle.putBoolean(BundleKeys.KEY_ROOM_COMMITTEE_CALL, inOneToOneCall())
         router.pushController(
             RouterTransaction.with(ConversationInfoController(bundle))
                 .pushChangeHandler(HorizontalChangeHandler())
@@ -1748,6 +1874,7 @@ class ChatController(args: Bundle) :
 
                     if (lobbyTimerHandler != null) {
                         lobbyTimerHandler?.removeCallbacksAndMessages(null)
+//                        mediaPlayer.stop()
                     }
 
                     if (magicWebSocketInstance != null && currentConversation != null) {
