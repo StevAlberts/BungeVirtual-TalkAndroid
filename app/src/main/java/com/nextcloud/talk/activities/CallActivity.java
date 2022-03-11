@@ -4101,8 +4101,6 @@ public class CallActivity extends CallBaseActivity {
             });
     }
 
-    boolean isRadioBtn = false;
-
     private void getPollsOptions(){
         apiService.getPollsOptions(credentials,pollId)
             .subscribeOn(Schedulers.io())
@@ -4213,7 +4211,6 @@ public class CallActivity extends CallBaseActivity {
                         response = responseBody.string();
 
                         Log.d(TAG, "getVoteResultsResponse....: " + response);
-
 
                         JSONObject jsonObject = new JSONObject(response);
                         JSONArray jsonArray = jsonObject.getJSONArray("votes");
