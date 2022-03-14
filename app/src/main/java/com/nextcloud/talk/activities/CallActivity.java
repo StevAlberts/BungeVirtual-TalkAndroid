@@ -690,15 +690,12 @@ public class CallActivity extends CallBaseActivity {
             if (participantsInGrid > 2) {
                 columns = 1;
             } else {
-                columns = 0;
+                columns = 1 ;
             }
         } else {
-            if (participantsInGrid > 5) {
-//                participantDisplayItems.clear();
+            if (participantsInGrid > 10) {
                 columns = 1;
-            } else if (participantsInGrid > 1) {
-                columns = 1;
-            } else {
+            }  else {
                 columns = 1;
             }
         }
@@ -2891,6 +2888,8 @@ public class CallActivity extends CallBaseActivity {
 
         // prepare fingerprint
         bioAuthPrompt();
+//        promptInfo = BiometricPrompt.PromptInfo.Builder()
+
 
         // open vote sheet
         binding.voteButton.setOnClickListener(l -> {
@@ -3637,8 +3636,11 @@ public class CallActivity extends CallBaseActivity {
             .setTitle("Biometric voter verification")
             .setSubtitle("Using your biometric credential")
             .setNegativeButtonText("Cancel")
+            //HAD TO SET THE ALLOWED AUTHENTICATORS TO 1 OR 0
+            .setAllowedAuthenticators(0)
             .build();
     }
+
 
     private void sendOtp(){
 
