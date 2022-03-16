@@ -57,7 +57,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -243,7 +242,7 @@ public class CallActivity extends CallBaseActivity {
 
     private int pollExpire;
 
-    private int otpExpire;
+    private int voteExpire;
 
     private int otpOpen;
 
@@ -3576,8 +3575,8 @@ public class CallActivity extends CallBaseActivity {
             public void onAuthenticationError(int errorCode,
                                               @NonNull CharSequence errString) {
                 super.onAuthenticationError(errorCode, errString);
-                Toast.makeText(getApplicationContext(), "Authentication failed",
-                        Toast.LENGTH_SHORT)
+                Toast.makeText(getApplicationContext(), "Please enable device fingerprint.",
+                        Toast.LENGTH_LONG)
                     .show();
             }
 
@@ -3812,7 +3811,7 @@ public class CallActivity extends CallBaseActivity {
                                 pollId = Integer.parseInt(voteId);
 
                                 // set expire time
-                                otpExpire = Integer.parseInt(expire);
+                                voteExpire = Integer.parseInt(expire);
 
                                 otpOpen = Integer.parseInt(openingTime);
 
@@ -3852,10 +3851,13 @@ public class CallActivity extends CallBaseActivity {
                                     // used to show vote button
                                     if (expireInt > 0) {
                                         // if expireInt is greater than current time
-                                        if (expireInt > nowTimestamp) {
+                                        if (expireInt < nowTimestamp) {
                                             Log.d(TAG, "Show vote btn expire....:");
                                             // unshow vote button
                                             binding.voteButton.setVisibility(View.GONE);
+
+                                            // show vote results
+                                            getVoteResults();
                                         }
                                     } else {
                                         // if opening time is greater than current time
@@ -3867,8 +3869,6 @@ public class CallActivity extends CallBaseActivity {
                                             listenToPolls();
                                             // listen to shares
                                             listenToShares();
-                                            // get vote results
-                                            getVoteResults();
                                         }
                                     }
 
@@ -3976,56 +3976,64 @@ public class CallActivity extends CallBaseActivity {
 
                                     // use this to set vote
                                     RadioGroup voteRadio = voteSheetDialog.findViewById(R.id.radioGroup);
-                                    voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
 
-                                        switch (checkedId) {
-                                            case R.id.voteYes:
-                                                // do operations specific to this selection
-                                                try {
-                                                    Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getString("pollOptionText"));
-                                                    Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getInt("id"));
-                                                    placeVote(voteOptions.get(0).getInt("id"));
-                                                } catch (JSONException e) {
-                                                    e.printStackTrace();
-                                                }
-                                                // toast
-                                                Toast.makeText(getApplicationContext(), "Voted Yes", Toast.LENGTH_SHORT).show();
-                                                break;
-                                            case R.id.voteNo:
-                                                // do operations specific to this selection
-                                                try {
-                                                    Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getString("pollOptionText"));
-                                                    Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getInt("id"));
-                                                    placeVote(voteOptions.get(1).getInt("id"));
+                                    Log.d(TAG,"PollExpire...:" + pollExpire);
 
-                                                } catch (JSONException e) {
-                                                    e.printStackTrace();
-                                                }
-                                                // toast
-                                                Toast.makeText(getApplicationContext(), "Voted No", Toast.LENGTH_SHORT).show();
-                                                break;
-                                            case R.id.voteAbstain:
-                                                // do operations specific to this selection
-                                                try {
-                                                    Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getString("pollOptionText"));
-                                                    Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getInt("id"));
-                                                    placeVote(voteOptions.get(2).getInt("id"));
+//                                    if (voteExpire >0) {
 
-                                                } catch (JSONException e) {
-                                                    e.printStackTrace();
-                                                }
-                                                // toast
-                                                Toast.makeText(getApplicationContext(), "Voted Abstain", Toast.LENGTH_SHORT).show();
-                                                break;
-                                        }
-                                    });
+                                        assert voteRadio != null;
+                                        voteRadio.setClickable(false);
 
+                                        voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
+
+                                            switch (checkedId) {
+                                                case R.id.voteYes:
+                                                    // do operations specific to this selection
+                                                    try {
+                                                        Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getString("pollOptionText"));
+                                                        Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getInt("id"));
+                                                        placeVote(voteOptions.get(0).getInt("id"));
+                                                    } catch (JSONException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    // toast
+                                                    Toast.makeText(getApplicationContext(), "Voted Yes", Toast.LENGTH_SHORT).show();
+                                                    break;
+                                                case R.id.voteNo:
+                                                    // do operations specific to this selection
+                                                    try {
+                                                        Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getString("pollOptionText"));
+                                                        Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getInt("id"));
+                                                        placeVote(voteOptions.get(1).getInt("id"));
+
+                                                    } catch (JSONException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    // toast
+                                                    Toast.makeText(getApplicationContext(), "Voted No", Toast.LENGTH_SHORT).show();
+                                                    break;
+                                                case R.id.voteAbstain:
+                                                    // do operations specific to this selection
+                                                    try {
+                                                        Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getString("pollOptionText"));
+                                                        Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getInt("id"));
+                                                        placeVote(voteOptions.get(2).getInt("id"));
+
+                                                    } catch (JSONException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    // toast
+                                                    Toast.makeText(getApplicationContext(), "Voted Abstain", Toast.LENGTH_SHORT).show();
+                                                    break;
+                                            }
+                                        });
+//                                    }
                                     TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
                                     voteTitle.setText(jsonObject1.getString("title"));
 
-                                    if(!expireTime.equals("0")){
+//                                    if(!expireTime.equals("0")){
 //                                        countVoteTimer();
-                                    }
+//                                    }
                                 }
 
                             }
@@ -4222,6 +4230,45 @@ public class CallActivity extends CallBaseActivity {
                         Log.d(TAG, "getVoteResults....: " + jsonObject.getJSONArray("votes"));
 
                         voteResultsCount = jsonArray.length();
+
+                        // emptry array of holder
+                        ArrayList<JSONObject> resultYes = new ArrayList<JSONObject>();
+                        ArrayList<JSONObject> resultNo = new ArrayList<JSONObject>();
+                        ArrayList<JSONObject> resultAbstain = new ArrayList<JSONObject>();
+
+
+                        // add json array to vote options
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            try {
+                                JSONObject jsonResult = jsonArray.getJSONObject(i);
+                                String voteOption = jsonResult.getString("voteOptionText");
+
+                                switch (voteOption) {
+                                        case "YES":
+                                            resultYes.add(jsonResult);
+                                        break;
+                                    case "NO":
+                                            resultNo.add(jsonResult);
+                                        break;
+                                    case "ABSTAIN":
+                                            resultAbstain.add(jsonResult);
+                                        break;
+                                }
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        int percYes = resultYes.size();
+                        int percNo = resultNo.size();
+                        int percAbstain = resultAbstain.size();
+
+                        Log.d(TAG, "PercY...: "+percYes);
+                        Log.d(TAG, "PercN...: "+percNo);
+                        Log.d(TAG, "PercA...: "+percAbstain);
+
+
 
                     } catch (JSONException | IOException e) {
                         e.printStackTrace();
