@@ -59,6 +59,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -4037,6 +4038,7 @@ public class CallActivity extends CallBaseActivity {
 
                     // parse response
                     try {
+                        assert response != null;
                         JSONObject jsonObject = new JSONObject(response);
                         JSONArray jsonArray = jsonObject.getJSONArray("polls");
                         Log.d(TAG, "onPollsResponse....: " + jsonObject.getJSONArray("polls"));
@@ -4089,12 +4091,23 @@ public class CallActivity extends CallBaseActivity {
                                     // use this to set vote
                                     RadioGroup voteRadio = voteSheetDialog.findViewById(R.id.radioGroup);
 
+                                    RadioButton voteYesBtn = voteSheetDialog.findViewById(R.id.voteYes);
+                                    RadioButton voteNoBtn = voteSheetDialog.findViewById(R.id.voteNo);
+                                    RadioButton voteAbstainBtn = voteSheetDialog.findViewById(R.id.voteAbstain);
+
+
                                     Log.d(TAG,"PollExpire...:" + pollExpire);
 
-//                                    if (voteExpire >0) {
+                                    if (voteExpire > 0) {
+                                        voteYesBtn.setEnabled(true);
+                                        voteNoBtn.setEnabled(true);
+                                        voteAbstainBtn.setEnabled(true);
+                                    }else{
+                                        voteYesBtn.setEnabled(false);
+                                        voteNoBtn.setEnabled(false);
+                                        voteAbstainBtn.setEnabled(false);
+                                    }
 
-                                        assert voteRadio != null;
-                                        voteRadio.setClickable(false);
 
                                         voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
 
@@ -4102,8 +4115,7 @@ public class CallActivity extends CallBaseActivity {
                                                 case R.id.voteYes:
                                                     // do operations specific to this selection
                                                     try {
-                                                        Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getString("pollOptionText"));
-                                                        Log.d(TAG, "VotedYes..:" + voteOptions.get(0).getInt("id"));
+                                                        if (voteExpire >0)
                                                         placeVote(voteOptions.get(0).getInt("id"));
                                                     } catch (JSONException e) {
                                                         e.printStackTrace();
@@ -4114,10 +4126,8 @@ public class CallActivity extends CallBaseActivity {
                                                 case R.id.voteNo:
                                                     // do operations specific to this selection
                                                     try {
-                                                        Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getString("pollOptionText"));
-                                                        Log.d(TAG, "VotedNo..:" + voteOptions.get(1).getInt("id"));
+                                                        if (voteExpire >0)
                                                         placeVote(voteOptions.get(1).getInt("id"));
-
                                                     } catch (JSONException e) {
                                                         e.printStackTrace();
                                                     }
@@ -4127,10 +4137,8 @@ public class CallActivity extends CallBaseActivity {
                                                 case R.id.voteAbstain:
                                                     // do operations specific to this selection
                                                     try {
-                                                        Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getString("pollOptionText"));
-                                                        Log.d(TAG, "VotedMaybe..:" + voteOptions.get(2).getInt("id"));
+                                                        if (voteExpire >0)
                                                         placeVote(voteOptions.get(2).getInt("id"));
-
                                                     } catch (JSONException e) {
                                                         e.printStackTrace();
                                                     }

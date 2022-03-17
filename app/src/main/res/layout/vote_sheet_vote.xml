@@ -12,15 +12,13 @@
 
 
         <LinearLayout
+            android:id="@+id/main_vote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="8dp"
             android:layout_centerVertical="true"
-            android:id="@+id/main_vote">
+            android:orientation="vertical"
+            android:padding="8dp">
 
-
-            <include layout="@layout/vote_header_view"/>
 
             <RadioGroup
                 android:id="@+id/radioGroup"
@@ -34,32 +32,34 @@
                     android:id="@+id/voteYes"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="10dp"
                     android:text="Yes"
-                    android:textStyle="bold"
                     android:textSize="25dp"
-                    android:padding="10dp"/>
+                    android:textStyle="bold" />
 
                 <RadioButton
                     android:id="@+id/voteNo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="10dp"
                     android:text="No"
-                    android:textStyle="bold"
                     android:textSize="25dp"
-                    android:padding="10dp"/>
+                    android:textStyle="bold" />
 
                 <RadioButton
                     android:id="@+id/voteAbstain"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="25dp"
-                    android:textStyle="bold"
+                    android:padding="10dp"
                     android:text="Abstain"
-                    android:padding="10dp"/>
+                    android:textSize="25dp"
+                    android:textStyle="bold" />
 
             </RadioGroup>
 
-            <include layout="@layout/vote_footer_view"/>
+            <include layout="@layout/vote_header_view" />
+
+            <include layout="@layout/vote_footer_view" />
 
 
         </LinearLayout>
