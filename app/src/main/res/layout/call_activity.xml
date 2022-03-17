@@ -46,6 +46,17 @@
             android:orientation="vertical"
             tools:visibility="visible">
 
+
+            <GridView
+                android:id="@+id/gridview1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:numColumns="2"
+                android:clickable="true"
+                android:scrollbars="horizontal"
+                android:stretchMode="columnWidth"/>
+
             <GridView
                 android:id="@+id/gridview"
                 android:layout_width="match_parent"
@@ -53,13 +64,8 @@
                 android:gravity="center"
                 android:columnWidth="475dp"
                 android:numColumns="2"
-                android:clickable="true"
-                android:scrollbarAlwaysDrawHorizontalTrack="true"
-                android:scrollbarAlwaysDrawVerticalTrack="true"
-                android:scrollbars="horizontal"
-                android:stretchMode="none">
-
-            </GridView>
+                android:scrollbars="vertical"
+                android:stretchMode="columnWidth" />
 
             <FrameLayout
                 android:id="@+id/selfVideoViewWrapper"

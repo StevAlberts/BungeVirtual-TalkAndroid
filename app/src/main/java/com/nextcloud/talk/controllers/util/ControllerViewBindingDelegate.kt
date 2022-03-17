@@ -43,7 +43,7 @@ class ControllerViewBindingDelegate<T : ViewBinding>(
         })
     }
 
-    override fun getValue(thisRef: Controller, property: KProperty<*>): T {
+    override operator fun getValue(thisRef: Controller, property: KProperty<*>): T {
         return binding ?: viewBinder(thisRef.view!!).also { binding = it }
     }
 }

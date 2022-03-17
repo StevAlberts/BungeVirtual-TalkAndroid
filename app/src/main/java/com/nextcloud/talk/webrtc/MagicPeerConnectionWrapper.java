@@ -38,6 +38,9 @@ import com.nextcloud.talk.models.json.signaling.DataChannelMessageNick;
 import com.nextcloud.talk.models.json.signaling.NCIceCandidate;
 
 import org.greenrobot.eventbus.EventBus;
+//audio and video track from webrtc unified plan
+import org.webrtc.AudioTrack;
+import org.webrtc.VideoTrack;
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
@@ -51,6 +54,7 @@ import org.webrtc.SessionDescription;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -61,7 +65,7 @@ import autodagger.AutoInjector;
 
 @AutoInjector(NextcloudTalkApplication.class)
 public class MagicPeerConnectionWrapper {
-    private static final String TAG = "MagicPeerConWrapper";
+    private static final String TAG = MagicPeerConnectionWrapper.class.getCanonicalName();
 
     private List<IceCandidate> iceCandidates = new ArrayList<>();
     private PeerConnection peerConnection;
@@ -111,8 +115,15 @@ public class MagicPeerConnectionWrapper {
                 new MagicPeerConnectionObserver());
 
         if (peerConnection != null) {
+            //added the local media stream
             if (localMediaStream != null) {
-                peerConnection.addStream(localMediaStream);
+                List<String> localMediaStreamIds = Collections.singletonList(localMediaStream.getId());
+                for(AudioTrack track : localMediaStream.audioTracks) {
+                    peerConnection.addTrack(track, localMediaStreamIds);
+                }
+                for(VideoTrack track : localMediaStream.videoTracks) {
+                    peerConnection.addTrack(track, localMediaStreamIds);
+                }
             }
 
             if (hasMCU || hasInitiated) {
@@ -143,6 +154,9 @@ public class MagicPeerConnectionWrapper {
         if (magicDataChannel != null) {
             magicDataChannel.dispose();
             magicDataChannel = null;
+            Log.d(TAG, "Disposed DataChannel");
+        } else {
+            Log.d(TAG, "DataChannel is null.");
         }
 
         if (peerConnection != null) {
@@ -152,6 +166,9 @@ public class MagicPeerConnectionWrapper {
 
             peerConnection.close();
             peerConnection = null;
+            Log.d(TAG, "Disposed PeerConnection");
+        } else {
+            Log.d(TAG, "PeerConnection is null.");
         }
     }
 

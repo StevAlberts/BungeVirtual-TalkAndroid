@@ -39,6 +39,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -53,6 +54,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -158,6 +160,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.lang.Math.*;
 
 import javax.inject.Inject;
 
@@ -187,6 +190,8 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 
 @AutoInjector(NextcloudTalkApplication.class)
 public class CallActivity extends CallBaseActivity {
+    public static final String VIDEO_STREAM_TYPE_SCREEN = "screen";
+    public static final String VIDEO_STREAM_TYPE_VIDEO = "video";
 
     @Inject
     NcApi ncApi;
@@ -226,7 +231,8 @@ public class CallActivity extends CallBaseActivity {
     private String timeLeftVote = "";
 
 
-    Timer timer;
+//    Timer timer ;
+    private Timer timer = new Timer();
 
     private Conversation.ConversationType conversationType;
 
@@ -245,6 +251,7 @@ public class CallActivity extends CallBaseActivity {
     private int voteExpire;
 
     private int otpOpen;
+
 
     public static CallActivity getmInstanceActivity() {
         return mInstanceActivity;
@@ -318,6 +325,8 @@ public class CallActivity extends CallBaseActivity {
     private boolean hasMCU;
     private boolean hasExternalSignalingServer;
     private String conversationPassword;
+    private  MediaRecorder recorder = new MediaRecorder();
+
 
     private PowerManagerUtils powerManagerUtils;
 
@@ -343,9 +352,10 @@ public class CallActivity extends CallBaseActivity {
 //    private List<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
     private ArrayList<RequestToActionGenericResult> requestResultList = new ArrayList<RequestToActionGenericResult>();
 
+
     // array of map for voteOptions
-    private ArrayList<JSONObject> voteOptions = new ArrayList<JSONObject>();
-//    private ArrayList<String> voteOptions = new ArrayList<String>();
+//    private ArrayList<JSONObject> voteOptions = new ArrayList<>();
+    private ArrayList<JSONObject> voteOptions = new ArrayList<>();
 
     private int voteResultsCount = 0;
     private int voteSharesCount = 0;
@@ -480,9 +490,32 @@ public class CallActivity extends CallBaseActivity {
         });
 
         binding.switchSelfVideoButton.setOnClickListener(l -> switchCamera());
+        //introducing onitem click listener on gridview
+//commented the original gridview
+//        binding.gridview.setOnItemClickListener((parent, view, position, id) -> animateCallControls(true, 0));
+        binding.gridview1.setOnItemClickListener(((parent, view, position, id) -> {
 
-        binding.gridview.setOnItemClickListener((parent, view, position, id) -> animateCallControls(true, 0));
+            if (position == 0) {
+                Intent def = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(def);
+            } else if (position == 1) {
+                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(abc);
+            } else if (position == 2) {
+                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(abc);
+            } else if (position == 3) {
+                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(abc);
+            } else if (position == 4) {
+                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(abc);
+            } else if (position == 5) {
+                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+                startActivity(abc);
+            }
 
+        }));
         binding.callStates.callStateRelativeLayout.setOnClickListener(l -> {
             if (currentCallStatus.equals(CallStatus.CALLING_TIMEOUT)) {
                 setCallState(CallStatus.RECONNECTING);
@@ -682,19 +715,22 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void initGridAdapter() {
-        Log.d(TAG, "initGridAdapter...:"+participantDisplayItems.size());
+        Log.d(TAG, "initGridAdapter");
         int columns;
         int participantsInGrid = participantDisplayItems.size();
-        if (getResources() != null && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (getResources() != null
+            && getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             if (participantsInGrid > 2) {
-                columns = 1;
+                columns = 2;
             } else {
-                columns = 1 ;
+                columns = 1;
             }
         } else {
-            if (participantsInGrid > 10) {
-                columns = 1;
-            }  else {
+            if (participantsInGrid > 2) {
+                columns = 2;
+            } else if (participantsInGrid > 1) {
+                columns = 2;
+            } else {
                 columns = 1;
             }
         }
@@ -716,6 +752,8 @@ public class CallActivity extends CallBaseActivity {
                 binding.callInfosLinearLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
         });
+
+        //trying another adapter in order to capture the shared screen
 
         participantsAdapter = new ParticipantsAdapter(
             this,
@@ -1181,7 +1219,11 @@ public class CallActivity extends CallBaseActivity {
                 localMediaStream.audioTracks.get(0).setEnabled(enable);
             }
         }
+//DATA CHANNELS CAUSING CRASH
+        sendDataChannelMessage(message);
+    }
 
+    private void sendDataChannelMessage(String message) {
         if (isConnectionEstablished() && magicPeerConnectionWrapperList != null) {
             if (!hasMCU) {
                 for (MagicPeerConnectionWrapper magicPeerConnectionWrapper : magicPeerConnectionWrapperList) {
@@ -1192,6 +1234,60 @@ public class CallActivity extends CallBaseActivity {
                     if (magicPeerConnectionWrapper.getSessionId().equals(webSocketClient.getSessionId())) {
                         magicPeerConnectionWrapper.sendChannelData(new DataChannelMessage(message));
                         break;
+                    }
+                }
+            }
+        }
+    }
+    //CAUSING A CRASH
+    private void startListening() {
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+//        MediaRecorder recorder = new MediaRecorder();
+//        TimerTask timerTask = new RecorderTask(recorder);
+        timer.scheduleAtFixedRate(new RecorderTask(recorder), 0, 1000);
+        recorder.setOutputFile("/dev/null");
+
+        try {
+            recorder.prepare();
+            recorder.start();
+//            recorder.getAudioSourceMax();
+
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public class RecorderTask extends TimerTask {
+        private boolean speaking = false;
+        private MediaRecorder recorder;
+
+        RecorderTask(MediaRecorder recorder) {
+            this.recorder = recorder;
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.P)
+        @Override
+        public void run() {
+            if (isConnectionEstablished()) {
+               int amplitude = 0;
+                double  amplitudeDb = 20 * Math.log10(Math.abs(amplitude));
+                if (amplitudeDb >= 50) {
+                    if (!speaking) {
+                        speaking = true;
+                        sendDataChannelMessage("speaking");
+                    }
+                } else {
+                    if (speaking) {
+                        speaking = false;
+                        sendDataChannelMessage("stoppedSpeaking");
                     }
                 }
             }
@@ -1860,6 +1956,7 @@ public class CallActivity extends CallBaseActivity {
         hangup(true);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void hangup(boolean shutDownView) {
         mCompositeDisposable.dispose();
         if(timer!=null){
@@ -1903,6 +2000,14 @@ public class CallActivity extends CallBaseActivity {
             }
 
             localMediaStream = null;
+            //webrtc unified plan changes
+            if(localMediaStream != null) {
+                localMediaStream.dispose();
+                localMediaStream = null;
+                Log.d(TAG, "Disposed localMediaStream");
+            } else {
+                Log.d(TAG, "localMediaStream is null");
+            }
             localAudioTrack = null;
             localVideoTrack = null;
 
@@ -1915,6 +2020,9 @@ public class CallActivity extends CallBaseActivity {
         for (int i = 0; i < magicPeerConnectionWrapperList.size(); i++) {
             endPeerConnection(magicPeerConnectionWrapperList.get(i).getSessionId(), false);
         }
+        timer.cancel();
+//        recorder.release();
+//        recorder.stop();
 
         hangupNetworkCalls(shutDownView);
         ApplicationWideCurrentRoomHolder.getInstance().setInCall(false);
@@ -2012,11 +2120,11 @@ public class CallActivity extends CallBaseActivity {
 
         if (hasMCU) {
             // Ensure that own publishing peer is set up.
-            getPeerConnectionWrapperForSessionIdAndType(webSocketClient.getSessionId(), "video", true);
+            getPeerConnectionWrapperForSessionIdAndType(webSocketClient.getSessionId(), VIDEO_STREAM_TYPE_VIDEO, true);
         }
 
         for (String sessionId : newSessions) {
-            getPeerConnectionWrapperForSessionIdAndType(sessionId, "video", false);
+            getPeerConnectionWrapperForSessionIdAndType(sessionId, VIDEO_STREAM_TYPE_VIDEO,  false);
         }
 
         if (newSessions.size() > 0 && !currentCallStatus.equals(CallStatus.IN_CONVERSATION)) {
@@ -2117,10 +2225,11 @@ public class CallActivity extends CallBaseActivity {
                                                                                 sdpConstraints,
                                                                                 sessionId,
                                                                                 callSession,
-                                                                                null,
+                        localMediaStream,
                                                                                 false,
                                                                                 false,
                                                                                 type);
+//                    binding.gridview1.setAdapter(participantsAdapter);
                 }
             }
 
@@ -2152,7 +2261,7 @@ public class CallActivity extends CallBaseActivity {
             for (int i = 0; i < magicPeerConnectionWrappers.size(); i++) {
                 magicPeerConnectionWrapper = magicPeerConnectionWrappers.get(i);
                 if (magicPeerConnectionWrapper.getSessionId().equals(sessionId)) {
-                    if (magicPeerConnectionWrapper.getVideoStreamType().equals("screen") || !justScreen) {
+                    if (VIDEO_STREAM_TYPE_SCREEN.equals(magicPeerConnectionWrapper.getVideoStreamType()) || !justScreen) {
                         runOnUiThread(() -> removeMediaStream(sessionId));
                         deleteMagicPeerConnection(magicPeerConnectionWrapper);
                     }
@@ -2203,7 +2312,8 @@ public class CallActivity extends CallBaseActivity {
             } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
                 layoutParams.height = FrameLayout.LayoutParams.WRAP_CONTENT;
                 layoutParams.width = (int) getResources().getDimension(R.dimen.large_preview_dimension);
-                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.5);
+                //changed dimension to 0.8
+                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.8);
             }
             binding.selfVideoRenderer.setLayoutParams(layoutParams);
 
@@ -2219,7 +2329,7 @@ public class CallActivity extends CallBaseActivity {
 
         if (peerConnectionEvent.getPeerConnectionEventType().equals(PeerConnectionEvent.PeerConnectionEventType
                                                                         .PEER_CLOSED)) {
-            endPeerConnection(sessionId, peerConnectionEvent.getVideoStreamType().equals("screen"));
+            endPeerConnection(sessionId, VIDEO_STREAM_TYPE_SCREEN.equals(peerConnectionEvent.getVideoStreamType()));
         } else if (peerConnectionEvent.getPeerConnectionEventType().equals(PeerConnectionEvent
                                                                                .PeerConnectionEventType.SENSOR_FAR) ||
             peerConnectionEvent.getPeerConnectionEventType().equals(PeerConnectionEvent
@@ -2635,7 +2745,9 @@ public class CallActivity extends CallBaseActivity {
 
     private void playCallingSound() {
         stopCallingSound();
+        startListening();
         Uri ringtoneUri;
+
         if (isIncomingCallFromNotification) {
             ringtoneUri = NotificationUtils.INSTANCE.getCallRingtoneUri(getApplicationContext(), appPreferences);
         } else {

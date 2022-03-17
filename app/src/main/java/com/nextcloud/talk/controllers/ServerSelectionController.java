@@ -147,14 +147,19 @@ public class ServerSelectionController extends BaseController {
                         (TextUtils.isEmpty(getResources().getString(R.string.nc_import_account_type)))) {
             providersTextView.setVisibility(View.INVISIBLE);
         } else {
-            if ((TextUtils.isEmpty(getResources
+            //fixed klint errors
+            if (
+                (
+                    TextUtils.isEmpty(getResources
                     ().getString(R.string.nc_import_account_type)) ||
                     AccountUtils.INSTANCE.findAccounts(userUtils.getUsers()).size() == 0) &&
                     userUtils.getUsers().size() == 0) {
 
                 providersTextView.setText(R.string.nc_get_from_provider);
                 providersTextView.setOnClickListener(view12 -> {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(getResources()
+                    Intent browserIntent = new Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(getResources()
                             .getString(R.string.nc_providers_url)));
                     startActivity(browserIntent);
                 });
