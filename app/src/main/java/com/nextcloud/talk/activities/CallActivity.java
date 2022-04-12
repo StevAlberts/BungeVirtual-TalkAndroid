@@ -20,7 +20,6 @@
 
 package com.nextcloud.talk.activities;
 
-import java.util.Map;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -58,6 +57,9 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridView;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -65,7 +67,19 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.preference.PreferenceManager;
+
 import com.bluelinelabs.logansquare.LoganSquare;
+import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.drawee.interfaces.DraweeController;
+import com.facebook.drawee.view.SimpleDraweeView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.nextcloud.talk.R;
@@ -146,6 +160,7 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RendererCommon;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
+import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
@@ -155,24 +170,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.lang.Math.*;
 
 import javax.inject.Inject;
 
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.biometric.BiometricPrompt;
-import androidx.core.content.ContextCompat;
-import androidx.preference.PreferenceManager;
 import autodagger.AutoInjector;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
@@ -361,6 +368,12 @@ public class CallActivity extends CallBaseActivity {
     private int voteResultsCount = 0;
     private int voteSharesCount = 0;
 
+    // Module: Follow video
+//    private final CallActivity mContext;
+//    private final LinearLayout callInfosLinearLayout;
+    private GridView gridView;
+    // Module: END Follow video
+
 
     @Parcel
     public enum CallStatus {
@@ -441,6 +454,11 @@ public class CallActivity extends CallBaseActivity {
 
         // initialize kikao activities
         initKikaoControls();
+
+        // Module: Follow video
+        gridView = findViewById(R.id.gridview);
+        gridView.setOnItemClickListener(messageClickedHandler);
+        // Module: END Follow video
     }
 
     @Override
@@ -493,30 +511,30 @@ public class CallActivity extends CallBaseActivity {
         binding.switchSelfVideoButton.setOnClickListener(l -> switchCamera());
         //introducing onitem click listener on gridview
 //commented the original gridview
-//        binding.gridview.setOnItemClickListener((parent, view, position, id) -> animateCallControls(true, 0));
-        binding.gridview1.setOnItemClickListener(((parent, view, position, id) -> {
-
-            if (position == 0) {
-                Intent def = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(def);
-            } else if (position == 1) {
-                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(abc);
-            } else if (position == 2) {
-                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(abc);
-            } else if (position == 3) {
-                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(abc);
-            } else if (position == 4) {
-                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(abc);
-            } else if (position == 5) {
-                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
-                startActivity(abc);
-            }
-
-        }));
+//        binding.gridview1.setOnItemClickListener((parent, view, position, id) -> animateCallControls(false, 0));
+//        binding.gridview1.setOnItemClickListener(((parent, view, position, id) -> {
+//
+//            if (position == 0) {
+//                Intent def = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(def);
+//            } else if (position == 1) {
+//                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(abc);
+//            } else if (position == 2) {
+//                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(abc);
+//            } else if (position == 3) {
+//                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(abc);
+//            } else if (position == 4) {
+//                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(abc);
+//            } else if (position == 5) {
+//                Intent abc = new Intent(getmInstanceActivity(), participantDisplayItems.getClass());
+//                startActivity(abc);
+//            }
+//
+//        }));
         binding.callStates.callStateRelativeLayout.setOnClickListener(l -> {
             if (currentCallStatus.equals(CallStatus.CALLING_TIMEOUT)) {
                 setCallState(CallStatus.RECONNECTING);
@@ -637,7 +655,6 @@ public class CallActivity extends CallBaseActivity {
                 }
             });
     }
-
     @SuppressLint("ClickableViewAccessibility")
     private void initViews() {
         Log.d(TAG, "initViews");
@@ -675,24 +692,20 @@ public class CallActivity extends CallBaseActivity {
             runOnUiThread(this::initSelfVideoView);
         }
 
-        binding.gridview.setOnTouchListener(new View.OnTouchListener() {
-            public boolean onTouch(View v, MotionEvent me) {
-                int action = me.getActionMasked();
-                if (action == MotionEvent.ACTION_DOWN) {
-                    animateCallControls(true, 0);
-                }
-                return false;
+        binding.gridview.setOnTouchListener((v, me) -> {
+            int action = me.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                animateCallControls(true, 0);
             }
+            return false;
         });
 
-        binding.conversationRelativeLayout.setOnTouchListener(new View.OnTouchListener() {
-            public boolean onTouch(View v, MotionEvent me) {
-                int action = me.getActionMasked();
-                if (action == MotionEvent.ACTION_DOWN) {
-                    animateCallControls(true, 0);
-                }
-                return false;
+        binding.conversationRelativeLayout.setOnTouchListener((v, me) -> {
+            int action = me.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                animateCallControls(true, 0);
             }
+            return false;
         });
 
         animateCallControls(true, 0);
@@ -762,7 +775,9 @@ public class CallActivity extends CallBaseActivity {
             binding.conversationRelativeLayout,
             binding.callInfosLinearLayout,
             columns,
-            false // isVoiceOnlyCall set to false
+            false, // isVoiceOnlyCall set to false
+            binding.focusVideoSurfaceView,
+            binding.gridview
         );
 
 
@@ -1294,6 +1309,7 @@ public class CallActivity extends CallBaseActivity {
             }
         }
     }
+//Adding zoom view for the ontouch column
 
 
     private void animateCallControls(boolean show, long startDelay) {
@@ -2305,16 +2321,16 @@ public class CallActivity extends CallBaseActivity {
                 newYafterRotate = 20;
             }
 
-            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
                 layoutParams.height = (int) getResources().getDimension(R.dimen.large_preview_dimension);
                 layoutParams.width = FrameLayout.LayoutParams.WRAP_CONTENT;
                 newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.8);
 
-            } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 layoutParams.height = FrameLayout.LayoutParams.WRAP_CONTENT;
                 layoutParams.width = (int) getResources().getDimension(R.dimen.large_preview_dimension);
                 //changed dimension to 0.8
-                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.8);
+                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.5);
             }
             binding.selfVideoRenderer.setLayoutParams(layoutParams);
 
@@ -4660,4 +4676,164 @@ public class CallActivity extends CallBaseActivity {
 
     }
 
+    // Module: Follow video
+    public ParticipantDisplayItem getItem(int position) {
+        final ArrayList<ParticipantDisplayItem> participantDisplayItemsFocus = new ArrayList<>();
+        participantDisplayItemsFocus.addAll(participantDisplayItems.values());
+        return participantDisplayItemsFocus.get(position);
+    }
+
+    private int getRowsCount(int items) {
+        // from initGridAdapter
+        int columns;
+        int participantsInGrid = participantDisplayItems.size();
+        if (getResources() != null
+            && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (participantsInGrid > 2) {
+                columns = 2;
+            } else {
+                columns = 1;
+            }
+        } else {
+            if (participantsInGrid > 2) {
+                columns = 2;
+            } else if (participantsInGrid > 1) {
+                columns = 2;
+            } else {
+                columns = 1;
+            }
+        }
+        binding.gridview.setNumColumns(columns);
+        // END from initGridAdapter
+
+//        int rows = (int) Math.ceil((double) items / (double) columns);
+        int rows = (int) Math.ceil((double) items / (double) columns);
+        if (rows == 0) {
+            rows = 1;
+        }
+        return rows;
+    }
+
+    public int getCount() {
+        return participantDisplayItems.size();
+    }
+
+    private int scaleGridViewItemHeight() {
+        RelativeLayout gridViewWrapper = binding.conversationRelativeLayout;
+        LinearLayout callInfosLinearLayout = binding.callInfosLinearLayout;
+
+        int headerHeight = 0;
+        int callControlsHeight = 0;
+        if (callInfosLinearLayout.getVisibility() == View.VISIBLE && isVoiceOnlyCall) {
+            headerHeight = callInfosLinearLayout.getHeight();
+        }
+        if (isVoiceOnlyCall) {
+            callControlsHeight = Math.round(getContext().getResources().getDimension(R.dimen.call_controls_height));
+        }
+        int itemHeight = (gridViewWrapper.getHeight() - headerHeight - callControlsHeight) / getRowsCount(getCount());
+        int itemMinHeight = Math.round(getContext().getResources().getDimension(R.dimen.call_grid_item_min_height));
+        if (itemHeight < itemMinHeight) {
+            itemMinHeight = itemHeight;
+        }
+//
+        return itemMinHeight;
+
+//defining the display metrics
+//        DisplayMetrics displayMetrics = new DisplayMetrics();
+//        mContext.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+//        int height = displayMetrics.heightPixels;
+//        int width = displayMetrics.widthPixels;
+//
+//
+//        float aspect_ratio = width / height;
+//        float itemHeight = (1 / aspect_ratio ) * width;
+//        return (int) itemHeight;
+    }
+
+    private boolean hasVideoStream(ParticipantDisplayItem participantDisplayItem, MediaStream mediaStream) {
+        return mediaStream != null && mediaStream.videoTracks != null && mediaStream.videoTracks.size() > 0 && participantDisplayItem.isStreamEnabled();
+    }
+
+    public void handleFocusVideo(int position) {
+        View convertView = null;
+        ParticipantDisplayItem participantDisplayItem = getItem(position);
+
+        SurfaceViewRenderer surfaceViewRenderer;
+        if (convertView == null) {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.call_item, null, false);
+//            convertView = binding.focusVideoSurfaceView;
+            convertView.setVisibility(View.VISIBLE);
+
+//            surfaceViewRenderer = convertView.findViewById(R.id.focus_video_surface_view);
+            surfaceViewRenderer = findViewById(R.id.focus_video_surface_view);
+
+            gridView.setVisibility(View.INVISIBLE);
+            try {
+                Log.d(TAG, "hasSurface: " + participantDisplayItem.getRootEglBase().hasSurface());
+
+                surfaceViewRenderer.setMirror(false);
+                surfaceViewRenderer.init(participantDisplayItem.getRootEglBase().getEglBaseContext(), null);
+                surfaceViewRenderer.setZOrderMediaOverlay(false);
+                // disabled because it causes some devices to crash
+                surfaceViewRenderer.setEnableHardwareScaler(false);
+                surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_BALANCED);
+            } catch (Exception e) {
+                Log.e(TAG, "error while initializing surfaceViewRenderer", e);
+            }
+        } else {
+            surfaceViewRenderer = convertView.findViewById(R.id.surface_view);
+        }
+
+        ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
+//         layoutParams.height = scaleGridViewItemHeight();
+//        layoutParams.height = 300;
+//        convertView.setLayoutParams(layoutParams);
+
+
+        TextView nickTextView = convertView.findViewById(R.id.peer_nick_text_view);
+        SimpleDraweeView imageView = convertView.findViewById(R.id.avatarImageView);
+
+        MediaStream mediaStream = participantDisplayItem.getMediaStream();
+        if (hasVideoStream(participantDisplayItem, mediaStream)) {
+            VideoTrack videoTrack = mediaStream.videoTracks.get(0);
+            videoTrack.addSink(surfaceViewRenderer);
+            imageView.setVisibility(View.INVISIBLE);
+            surfaceViewRenderer.setVisibility(View.VISIBLE);
+            nickTextView.setVisibility(View.GONE);
+        } else {
+            imageView.setVisibility(View.VISIBLE);
+            surfaceViewRenderer.setVisibility(View.INVISIBLE);
+
+            if (((CallActivity) getContext()).isInPipMode) {
+                nickTextView.setVisibility(View.GONE);
+            } else {
+                nickTextView.setVisibility(View.VISIBLE);
+                nickTextView.setText(participantDisplayItem.getNick());
+            }
+
+            imageView.setController(null);
+            DraweeController draweeController = Fresco.newDraweeControllerBuilder()
+                .setOldController(imageView.getController())
+                .setImageRequest(DisplayUtils.getImageRequestForUrl(participantDisplayItem.getUrlForAvatar(), null))
+                .build();
+            imageView.setController(draweeController);
+        }
+
+        ImageView audioOffView = convertView.findViewById(R.id.remote_audio_off);
+        if (!participantDisplayItem.isAudioEnabled()) {
+            audioOffView.setVisibility(View.VISIBLE);
+        } else {
+            audioOffView.setVisibility(View.INVISIBLE);
+        }
+    }
+
+        // Create a message handling object as an anonymous class.
+    private AdapterView.OnItemClickListener messageClickedHandler = new AdapterView.OnItemClickListener() {
+        public void onItemClick(AdapterView parent, View v, int position, long id) {
+            // Do something in response to the click
+            handleFocusVideo(position);
+        }
+    };
+
+    // Module: END Follow video
 }

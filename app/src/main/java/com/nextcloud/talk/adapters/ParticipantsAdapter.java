@@ -1,12 +1,15 @@
 package com.nextcloud.talk.adapters;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -27,7 +30,7 @@ import org.webrtc.VideoTrack;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class ParticipantsAdapter extends BaseAdapter {
+public class ParticipantsAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
 
     private static final String TAG = "ParticipantsAdapter";
 
@@ -37,13 +40,17 @@ public class ParticipantsAdapter extends BaseAdapter {
     private final LinearLayout callInfosLinearLayout;
     private final int columns;
     private final boolean isVoiceOnlyCall;
+    private final SurfaceViewRenderer focusVideoSurfaceView;
+    private final GridView gridView;
 
     public ParticipantsAdapter(CallActivity mContext,
                                Map<String, ParticipantDisplayItem> participantDisplayItems,
                                RelativeLayout gridViewWrapper,
                                LinearLayout callInfosLinearLayout,
                                int columns,
-                               boolean isVoiceOnlyCall) {
+                               boolean isVoiceOnlyCall,
+                               SurfaceViewRenderer focusVideoSurfaceView,
+                               GridView gridView) {
         this.mContext = mContext;
         this.gridViewWrapper = gridViewWrapper;
         this.callInfosLinearLayout = callInfosLinearLayout;
@@ -52,6 +59,9 @@ public class ParticipantsAdapter extends BaseAdapter {
 
         this.participantDisplayItems = new ArrayList<>();
         this.participantDisplayItems.addAll(participantDisplayItems.values());
+
+        this.focusVideoSurfaceView = focusVideoSurfaceView;
+        this.gridView = gridView;
     }
 
 
@@ -181,5 +191,90 @@ public class ParticipantsAdapter extends BaseAdapter {
             rows = 1;
         }
         return rows;
+    }
+
+    // Module: Follow video
+    public void handleFocusVideo(int position) {
+//        View convertView;
+//        ViewGroup parent;
+        ParticipantDisplayItem participantDisplayItem = getItem(position);
+
+        SurfaceViewRenderer surfaceViewRenderer;
+//        if (convertView == null) {
+//            convertView = LayoutInflater.from(mContext).inflate(R.layout.call_item, parent, false);
+//            convertView.setVisibility(View.VISIBLE);
+
+//            surfaceViewRenderer = convertView.findViewById(R.id.surface_view);
+        surfaceViewRenderer = focusVideoSurfaceView;
+        surfaceViewRenderer.setVisibility(View.VISIBLE);
+
+        gridView.setVisibility(View.GONE);
+        try {
+            Log.d(TAG, "handlefocusvideo " + participantDisplayItem.getRootEglBase().hasSurface());
+
+            surfaceViewRenderer.setMirror(false);
+            surfaceViewRenderer.init(participantDisplayItem.getRootEglBase().getEglBaseContext(), null);
+            surfaceViewRenderer.setZOrderMediaOverlay(false);
+            // disabled because it causes some devices to crash
+            surfaceViewRenderer.setEnableHardwareScaler(false);
+            surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
+        } catch (Exception e) {
+            Log.e(TAG, "error while initializing surfaceViewRenderer", e);
+        }
+//        } else {
+//            surfaceViewRenderer = convertView.findViewById(R.id.surface_view);
+//        }
+
+//        ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
+        // layoutParams.height = scaleGridViewItemHeight();
+//        layoutParams.height = 300;
+//        convertView.setLayoutParams(layoutParams);
+
+
+//        TextView nickTextView = convertView.findViewById(R.id.peer_nick_text_view);
+//        SimpleDraweeView imageView = convertView.findViewById(R.id.avatarImageView);
+//
+//        MediaStream mediaStream = participantDisplayItem.getMediaStream();
+//        if (hasVideoStream(participantDisplayItem, mediaStream)) {
+//            VideoTrack videoTrack = mediaStream.videoTracks.get(0);
+//            videoTrack.addSink(surfaceViewRenderer);
+//            imageView.setVisibility(View.INVISIBLE);
+//            surfaceViewRenderer.setVisibility(View.VISIBLE);
+//            nickTextView.setVisibility(View.GONE);
+//        } else {
+//            imageView.setVisibility(View.VISIBLE);
+//            surfaceViewRenderer.setVisibility(View.INVISIBLE);
+//
+//            if (((CallActivity) mContext).isInPipMode) {
+//                nickTextView.setVisibility(View.GONE);
+//            } else {
+//                nickTextView.setVisibility(View.VISIBLE);
+//                nickTextView.setText(participantDisplayItem.getNick());
+//            }
+//
+//            imageView.setController(null);
+//            DraweeController draweeController = Fresco.newDraweeControllerBuilder()
+//                .setOldController(imageView.getController())
+//                .setImageRequest(DisplayUtils.getImageRequestForUrl(participantDisplayItem.getUrlForAvatar(), null))
+//                .build();
+//            imageView.setController(draweeController);
+//        }
+//
+//        ImageView audioOffView = convertView.findViewById(R.id.remote_audio_off);
+//        if (!participantDisplayItem.isAudioEnabled()) {
+//            audioOffView.setVisibility(View.VISIBLE);
+//        } else {
+//            audioOffView.setVisibility(View.INVISIBLE);
+//        }
+
+//        return convertView;
+
+    }
+
+    // Module: END Follow video
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        handleFocusVideo(position);
     }
 }

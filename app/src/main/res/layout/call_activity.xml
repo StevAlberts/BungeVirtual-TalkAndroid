@@ -46,26 +46,44 @@
             android:orientation="vertical"
             tools:visibility="visible">
 
+<!--            Module: Follow video-->
+<!--            <LinearLayout-->
+<!--                android:id="@+id/focusVideoWrapperLayout"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:orientation="vertical">-->
+<!--            </LinearLayout>-->
 
-            <GridView
-                android:id="@+id/gridview1"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:numColumns="2"
-                android:clickable="true"
-                android:scrollbars="horizontal"
-                android:stretchMode="columnWidth"/>
+<!--            Module: END Follow video-->
+
+
+<!--            <GridView-->
+<!--                android:id="@+id/gridview1"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:gravity="center"-->
+<!--                android:rowCount="1"-->
+<!--                android:numColumns="1"-->
+<!--                android:layout_centerInParent="true"-->
+<!--                android:scrollbars="horizontal"-->
+<!--                android:stretchMode="columnWidth"/>-->
 
             <GridView
                 android:id="@+id/gridview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:columnWidth="475dp"
+                android:columnWidth="@dimen/shape_preference_width"
+                android:layout_centerVertical="true"
                 android:numColumns="2"
                 android:scrollbars="vertical"
                 android:stretchMode="columnWidth" />
+
+            <org.webrtc.SurfaceViewRenderer
+                android:id="@+id/focus_video_surface_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="invisible" />
 
             <FrameLayout
                 android:id="@+id/selfVideoViewWrapper"
@@ -78,7 +96,7 @@
                     android:layout_height="150dp"
                     android:layout_gravity="center"
                     android:layout_margin="16dp"
-                    android:clickable="false"
+                    android:clickable="true"
                     android:visibility="gone"
                     tools:visibility="visible" />
 
