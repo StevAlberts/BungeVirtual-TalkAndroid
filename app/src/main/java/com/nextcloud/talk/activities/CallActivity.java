@@ -1226,7 +1226,10 @@ public class CallActivity extends CallBaseActivity {
             message = "audioOff";
             if (enable) {
                 message = "audioOn";
+//                startListening();
                 binding.microphoneButton.setAlpha(1.0f);
+//                timer.cancel();
+//                startListening();
             } else {
                 binding.microphoneButton.setAlpha(0.7f);
             }
@@ -1240,7 +1243,7 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void sendDataChannelMessage(String message) {
-        if (isConnectionEstablished() && magicPeerConnectionWrapperList != null) {
+        if (isConnectionEstablished()) {
             if (!hasMCU) {
                 for (MagicPeerConnectionWrapper magicPeerConnectionWrapper : magicPeerConnectionWrapperList) {
                     magicPeerConnectionWrapper.sendChannelData(new DataChannelMessage(message));
@@ -1260,14 +1263,20 @@ public class CallActivity extends CallBaseActivity {
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+//        TODO https://stackoverflow.com/a/27249573
+//        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+//        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 //        MediaRecorder recorder = new MediaRecorder();
 //        TimerTask timerTask = new RecorderTask(recorder);
-        timer.scheduleAtFixedRate(new RecorderTask(recorder), 0, 1000);
+//        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
         recorder.setOutputFile("/dev/null");
 
         try {
             recorder.prepare();
             recorder.start();
+            timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
+            Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
+            toast.show();
 //            recorder.getAudioSourceMax();
 
         } catch (IllegalStateException e) {
@@ -1279,21 +1288,26 @@ public class CallActivity extends CallBaseActivity {
         catch (Exception e){
             e.printStackTrace();
         }
+
+
+//        recorder.start();
+//        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
+//        Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
+//        toast.show();
     }
 
     public class RecorderTask extends TimerTask {
         private boolean speaking = false;
-        private MediaRecorder recorder;
+//        private MediaRecorder recorder;
 
-        RecorderTask(MediaRecorder recorder) {
-            this.recorder = recorder;
-        }
+//        RecorderTask(MediaRecorder recorder) {
+//            this.recorder = recorder;
+//        }
 
-        @RequiresApi(api = Build.VERSION_CODES.P)
         @Override
         public void run() {
             if (isConnectionEstablished()) {
-               int amplitude = 0;
+               int amplitude = recorder.getMaxAmplitude();
                 double  amplitudeDb = 20 * Math.log10(Math.abs(amplitude));
                 if (amplitudeDb >= 50) {
                     if (!speaking) {
@@ -1309,7 +1323,7 @@ public class CallActivity extends CallBaseActivity {
             }
         }
     }
-//Adding zoom view for the ontouch column
+
 
 
     private void animateCallControls(boolean show, long startDelay) {
@@ -2038,8 +2052,8 @@ public class CallActivity extends CallBaseActivity {
             endPeerConnection(magicPeerConnectionWrapperList.get(i).getSessionId(), false);
         }
         timer.cancel();
-//        recorder.release();
-//        recorder.stop();
+        recorder.release();
+        recorder.stop();
 
         hangupNetworkCalls(shutDownView);
         ApplicationWideCurrentRoomHolder.getInstance().setInCall(false);
@@ -2324,13 +2338,13 @@ public class CallActivity extends CallBaseActivity {
             if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
                 layoutParams.height = (int) getResources().getDimension(R.dimen.large_preview_dimension);
                 layoutParams.width = FrameLayout.LayoutParams.WRAP_CONTENT;
-                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.8);
+                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.5);
 
             } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 layoutParams.height = FrameLayout.LayoutParams.WRAP_CONTENT;
                 layoutParams.width = (int) getResources().getDimension(R.dimen.large_preview_dimension);
                 //changed dimension to 0.8
-                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.5);
+                newXafterRotate = (float) (screenWidthDp - getResources().getDimension(R.dimen.large_preview_dimension) * 0.8);
             }
             binding.selfVideoRenderer.setLayoutParams(layoutParams);
 
@@ -2340,6 +2354,7 @@ public class CallActivity extends CallBaseActivity {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(PeerConnectionEvent peerConnectionEvent) {
         String sessionId = peerConnectionEvent.getSessionId();
@@ -2761,8 +2776,8 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void playCallingSound() {
-        stopCallingSound();
         startListening();
+        stopCallingSound();
         Uri ringtoneUri;
 
         if (isIncomingCallFromNotification) {
@@ -4804,7 +4819,7 @@ public class CallActivity extends CallBaseActivity {
             imageView.setVisibility(View.VISIBLE);
             surfaceViewRenderer.setVisibility(View.INVISIBLE);
 
-            if (((CallActivity) getContext()).isInPipMode) {
+            if (isInPipMode) {
                 nickTextView.setVisibility(View.GONE);
             } else {
                 nickTextView.setVisibility(View.VISIBLE);

@@ -124,7 +124,7 @@ public class ParticipantsAdapter extends BaseAdapter implements AdapterView.OnIt
             imageView.setVisibility(View.VISIBLE);
             surfaceViewRenderer.setVisibility(View.INVISIBLE);
 
-            if (((CallActivity) mContext).isInPipMode) {
+            if (mContext.isInPipMode) {
                 nickTextView.setVisibility(View.GONE);
             } else {
                 nickTextView.setVisibility(View.VISIBLE);
@@ -217,7 +217,7 @@ public class ParticipantsAdapter extends BaseAdapter implements AdapterView.OnIt
             surfaceViewRenderer.setZOrderMediaOverlay(false);
             // disabled because it causes some devices to crash
             surfaceViewRenderer.setEnableHardwareScaler(false);
-            surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
+            surfaceViewRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_BALANCED);
         } catch (Exception e) {
             Log.e(TAG, "error while initializing surfaceViewRenderer", e);
         }
@@ -225,10 +225,11 @@ public class ParticipantsAdapter extends BaseAdapter implements AdapterView.OnIt
 //            surfaceViewRenderer = convertView.findViewById(R.id.surface_view);
 //        }
 
-//        ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
-        // layoutParams.height = scaleGridViewItemHeight();
-//        layoutParams.height = 300;
-//        convertView.setLayoutParams(layoutParams);
+        //adding the scale to the surface view renderer by getting parameters
+        ViewGroup.LayoutParams layoutParams = surfaceViewRenderer.getLayoutParams();
+         layoutParams.height = scaleGridViewItemHeight();
+        layoutParams.height = 300;
+
 
 
 //        TextView nickTextView = convertView.findViewById(R.id.peer_nick_text_view);
