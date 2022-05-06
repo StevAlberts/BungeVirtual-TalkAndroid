@@ -1229,7 +1229,7 @@ public class CallActivity extends CallBaseActivity {
 //                startListening();
                 binding.microphoneButton.setAlpha(1.0f);
 //                timer.cancel();
-//                startListening();
+                startListening();
             } else {
                 binding.microphoneButton.setAlpha(0.7f);
             }
@@ -2052,8 +2052,8 @@ public class CallActivity extends CallBaseActivity {
             endPeerConnection(magicPeerConnectionWrapperList.get(i).getSessionId(), false);
         }
         timer.cancel();
-        recorder.release();
-        recorder.stop();
+//        recorder.release();
+//        recorder.stop();
 
         hangupNetworkCalls(shutDownView);
         ApplicationWideCurrentRoomHolder.getInstance().setInCall(false);
@@ -2776,7 +2776,6 @@ public class CallActivity extends CallBaseActivity {
     }
 
     private void playCallingSound() {
-        startListening();
         stopCallingSound();
         Uri ringtoneUri;
 
