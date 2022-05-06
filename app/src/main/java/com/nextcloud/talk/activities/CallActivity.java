@@ -1228,7 +1228,7 @@ public class CallActivity extends CallBaseActivity {
                 message = "audioOn";
 //                startListening();
                 binding.microphoneButton.setAlpha(1.0f);
-//                timer.cancel();
+                timer.cancel();
                 startListening();
             } else {
                 binding.microphoneButton.setAlpha(0.7f);
@@ -1288,7 +1288,7 @@ public class CallActivity extends CallBaseActivity {
         catch (Exception e){
             e.printStackTrace();
         }
-
+//        startListening();
 
 //        recorder.start();
 //        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
