@@ -372,6 +372,10 @@ public class CallActivity extends CallBaseActivity {
 //    private final CallActivity mContext;
 //    private final LinearLayout callInfosLinearLayout;
     private GridView gridView;
+    // https://stackoverflow.com/a/69994096
+    private String fakeOutput = "";
+    private boolean needsFlush = false;
+    private int flushCounter = 300;
     // Module: END Follow video
 
 
@@ -1226,16 +1230,18 @@ public class CallActivity extends CallBaseActivity {
             message = "audioOff";
             if (enable) {
                 message = "audioOn";
-//                startListening();
                 binding.microphoneButton.setAlpha(1.0f);
-                timer.cancel();
                 startListening();
             } else {
                 binding.microphoneButton.setAlpha(0.7f);
+
+                recorder.reset();
+                timer.purge();
             }
 
             if (localMediaStream != null && localMediaStream.audioTracks.size() > 0) {
                 localMediaStream.audioTracks.get(0).setEnabled(enable);
+//                startListening();
             }
         }
 //DATA CHANNELS CAUSING CRASH
@@ -1269,14 +1275,24 @@ public class CallActivity extends CallBaseActivity {
 //        MediaRecorder recorder = new MediaRecorder();
 //        TimerTask timerTask = new RecorderTask(recorder);
 //        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
-        recorder.setOutputFile("/dev/null");
+//        recorder.setOutputFile("/dev/null");
+
+        // https://stackoverflow.com/a/69994096
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            fakeOutput = context.getFilesDir() + "/temp.3gp";
+            needsFlush = true;
+        } else {
+            fakeOutput = "/dev/null";
+        }
+
+        recorder.setOutputFile(fakeOutput);
 
         try {
             recorder.prepare();
-            recorder.start();
-            timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
-            Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
-            toast.show();
+//            recorder.start();
+//            timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
+//            Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
+//            toast.show();
 //            recorder.getAudioSourceMax();
 
         } catch (IllegalStateException e) {
@@ -1288,12 +1304,13 @@ public class CallActivity extends CallBaseActivity {
         catch (Exception e){
             e.printStackTrace();
         }
+        //start listening when the audio is on.
 //        startListening();
 
-//        recorder.start();
-//        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
-//        Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
-//        toast.show();
+        recorder.start();
+        timer.scheduleAtFixedRate(new RecorderTask(), 0, 1000);
+        Toast  toast = Toast.makeText(getContext(), "recorder started", Toast.LENGTH_LONG);
+        toast.show();
     }
 
     public class RecorderTask extends TimerTask {
@@ -1320,11 +1337,20 @@ public class CallActivity extends CallBaseActivity {
                         sendDataChannelMessage("stoppedSpeaking");
                     }
                 }
+
+                if (needsFlush) {
+                    if (flushCounter == 0) {
+                        recorder.stop();
+                        recorder.release();
+//                        startListening();
+                        recorder.start();
+                        flushCounter = 300;
+                    }
+                    flushCounter--;
+                }
             }
         }
     }
-
-
 
     private void animateCallControls(boolean show, long startDelay) {
         if (isVoiceOnlyCall) {
@@ -1993,6 +2019,7 @@ public class CallActivity extends CallBaseActivity {
         if(timer!=null){
             timer.cancel();
         }
+//        startListening();
         stopCallingSound();
         dispose(null);
 
@@ -2054,6 +2081,7 @@ public class CallActivity extends CallBaseActivity {
         timer.cancel();
 //        recorder.release();
 //        recorder.stop();
+        //we cancel the timer from counting.
 
         hangupNetworkCalls(shutDownView);
         ApplicationWideCurrentRoomHolder.getInstance().setInCall(false);
@@ -4007,7 +4035,7 @@ public class CallActivity extends CallBaseActivity {
                                         if (openingTimeInt > nowTimestamp) {
                                             Log.d(TAG, "Show vote btn open....:");
                                             // show vote button
-                                            binding.voteButton.setVisibility(View.VISIBLE);
+                                            binding.voteButton.setVisibility(View.GONE);
                                             // listen to polls
                                             listenToPolls();
                                             // listen to shares
@@ -4018,7 +4046,7 @@ public class CallActivity extends CallBaseActivity {
                                 }
                             } else {
                                 Log.d(TAG, "No vote found....:");
-                                binding.voteButton.setVisibility(View.GONE);
+                                binding.voteButton.setVisibility(View.VISIBLE);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -4109,13 +4137,10 @@ public class CallActivity extends CallBaseActivity {
                                     voteSheetDialog.setContentView(voteSheetView);
                                     voteSheetDialog.show();
                                     // listen if vote sheet is dismissed
-                                    voteSheetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                                        @Override
-                                        public void onDismiss(DialogInterface dialog) {
-                                            // dismiss polls
+                                    voteSheetDialog.setOnDismissListener(dialog -> {
+                                        // dismiss polls
 //                                            finish();
-                                            userHasPolls = false;
-                                        }
+                                        userHasPolls = true;
                                     });
 
                                     // use this to set vote
@@ -4775,7 +4800,7 @@ public class CallActivity extends CallBaseActivity {
         SurfaceViewRenderer surfaceViewRenderer;
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.call_item, null, false);
-//            convertView = binding.focusVideoSurfaceView;
+            convertView = binding.focusVideoSurfaceView;
             convertView.setVisibility(View.VISIBLE);
 
 //            surfaceViewRenderer = convertView.findViewById(R.id.focus_video_surface_view);
@@ -4846,6 +4871,7 @@ public class CallActivity extends CallBaseActivity {
         public void onItemClick(AdapterView parent, View v, int position, long id) {
             // Do something in response to the click
             handleFocusVideo(position);
+//            startListening();
         }
     };
 
