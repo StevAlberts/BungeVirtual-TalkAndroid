@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding='utf-8' standalone='no'?>
+<resources>
+<!-- third_party/android/androidx_test/espresso/contrib/java/androidx/test/espresso/contrib/res/values/ids.xml -->
+<eat-comment/>
+
+<item name="androidx_test_espresso_contrib_drawer_layout_tag" type="id"/>
+</resources>

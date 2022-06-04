@@ -1,0 +1,127 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.google.android.exoplayer",
+    "module": "exoplayer-common",
+    "version": "2.16.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "7.0.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "27.1-android"
+          },
+          "excludes": [
+            {
+              "group": "com.google.j2objc",
+              "module": "j2objc-annotations"
+            },
+            {
+              "group": "org.checkerframework",
+              "module": "checker-compat-qual"
+            },
+            {
+              "group": "com.google.code.findbugs",
+              "module": "jsr305"
+            },
+            {
+              "group": "org.codehaus.mojo",
+              "module": "animal-sniffer-annotations"
+            },
+            {
+              "group": "com.google.errorprone",
+              "module": "error_prone_annotations"
+            }
+          ]
+        }
+      ],
+      "files": [
+        {
+          "name": "exoplayer-common-2.16.0.aar",
+          "url": "exoplayer-common-2.16.0.aar",
+          "size": 339720,
+          "sha512": "96846b7af598de68f0047d14a0d62b4eaa45510973e64fc4dc31ba693a1accf77ad66a86732a0a59e0a297848700d7424711f5dced67a95c667f74ce5df6b0e8",
+          "sha256": "fbac88d87e5b5e9f3ebb986fa0bc96b782e7cfabea0683cc7b54261128d62a66",
+          "sha1": "7d409e4c7da5790c24404b26c08af3ef7cb61f6a",
+          "md5": "28481b80499d5955a7de1d4c43e0f473"
+        }
+      ]
+    },
+    {
+      "name": "releaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.2.0"
+          }
+        },
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "27.1-android"
+          },
+          "excludes": [
+            {
+              "group": "com.google.j2objc",
+              "module": "j2objc-annotations"
+            },
+            {
+              "group": "org.checkerframework",
+              "module": "checker-compat-qual"
+            },
+            {
+              "group": "com.google.code.findbugs",
+              "module": "jsr305"
+            },
+            {
+              "group": "org.codehaus.mojo",
+              "module": "animal-sniffer-annotations"
+            },
+            {
+              "group": "com.google.errorprone",
+              "module": "error_prone_annotations"
+            }
+          ]
+        }
+      ],
+      "files": [
+        {
+          "name": "exoplayer-common-2.16.0.aar",
+          "url": "exoplayer-common-2.16.0.aar",
+          "size": 339720,
+          "sha512": "96846b7af598de68f0047d14a0d62b4eaa45510973e64fc4dc31ba693a1accf77ad66a86732a0a59e0a297848700d7424711f5dced67a95c667f74ce5df6b0e8",
+          "sha256": "fbac88d87e5b5e9f3ebb986fa0bc96b782e7cfabea0683cc7b54261128d62a66",
+          "sha1": "7d409e4c7da5790c24404b26c08af3ef7cb61f6a",
+          "md5": "28481b80499d5955a7de1d4c43e0f473"
+        }
+      ]
+    }
+  ]
+}

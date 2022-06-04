@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.cotechde.hwsecurity</groupId>
+  <artifactId>hwsecurity</artifactId>
+  <version>2.4.5</version>
+  <packaging>aar</packaging>
+  <name>cotechde/hwsecurity</name>
+  <description>Hardware Security SDK</description>
+  <url>https://hwsecurity.dev</url>
+  <inceptionYear>2019</inceptionYear>
+  <organization>
+    <name>Confidential Technologies GmbH</name>
+    <url>https://www.cotech.de</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Commercial</name>
+      <url>https://hwsecurity.dev/sales/</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>GNU General Public License, version 3</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>cotechde</id>
+      <name>Cotech</name>
+      <email>contact@cotech.de</email>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git://github.com/cotechde/hwsecurity.git</connection>
+    <developerConnection>scm:git://github.com/cotechde/hwsecurity.git</developerConnection>
+    <url>git://github.com/cotechde/hwsecurity.git</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value-annotations</artifactId>
+      <version>1.6.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>androidx.lifecycle</groupId>
+      <artifactId>lifecycle-runtime</artifactId>
+      <version>2.0.0</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+</project>
