@@ -270,7 +270,7 @@ public class ConversationItem extends AbstractFlexibleItem<ConversationItem.Conv
                         holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                        R.drawable.ic_circular_group));
                     break;
-                case ROOM_COMMITTEE_CALL:
+                case ROOM_GROUP_COMMITTEE_CALL:
                     holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                    R.drawable.ic_circular_group));
                     break;
@@ -278,7 +278,7 @@ public class ConversationItem extends AbstractFlexibleItem<ConversationItem.Conv
                         holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                        R.drawable.ic_circular_link));
                     break;
-                case ROOM_PLENARY_CALL:
+                case ROOM_GROUP_PLENARY_CALL:
                     holder.dialogAvatar.setImageDrawable(ContextCompat.getDrawable(context,
                                                                                    R.drawable.ic_circular_group));
                     break;

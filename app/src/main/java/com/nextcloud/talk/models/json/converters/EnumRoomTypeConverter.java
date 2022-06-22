@@ -31,14 +31,19 @@ public class EnumRoomTypeConverter extends IntBasedTypeConverter<Conversation.Co
                 return Conversation.ConversationType.ROOM_PUBLIC_CALL;
             case 3:
                 return Conversation.ConversationType.ROOM_GROUP_CALL;
+            // ***************************
+            // Module : Room Type
             case 22:
-                return Conversation.ConversationType.ROOM_COMMITTEE_CALL;
-            case 33:
-                return Conversation.ConversationType.ROOM_COMMITTEE_PUBLIC_CALL;
+                return Conversation.ConversationType.ROOM_GROUP_COMMITTEE_CALL;
             case 222:
-                return Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL;
+                return Conversation.ConversationType.ROOM_PUBLIC_COMMITTEE_CALL;
+            case 33:
+                return Conversation.ConversationType.ROOM_GROUP_PLENARY_CALL;
             case 333:
-                return Conversation.ConversationType.ROOM_PLENARY_CALL;
+                return Conversation.ConversationType.ROOM_PUBLIC_PLENARY_CALL;
+            case 20:
+                return Conversation.ConversationType.ROOM_BREAKOUT_CALL;
+            // ***************************
             default:
                 return Conversation.ConversationType.DUMMY;
         }
@@ -71,14 +76,19 @@ public class EnumRoomTypeConverter extends IntBasedTypeConverter<Conversation.Co
                 return 3;
             case ROOM_SYSTEM:
                 return 4;
-            case ROOM_PLENARY_CALL:
-                return 222;
-            case ROOM_PLENARY_PUBLIC_CALL:
-                return 333;
-            case ROOM_COMMITTEE_CALL:
+            // ***************************
+            // Module : Room Type
+            case ROOM_GROUP_COMMITTEE_CALL:
                 return 22;
-            case ROOM_COMMITTEE_PUBLIC_CALL:
+            case ROOM_PUBLIC_COMMITTEE_CALL:
+                return 222;
+            case ROOM_GROUP_PLENARY_CALL:
                 return 33;
+            case ROOM_PUBLIC_PLENARY_CALL:
+                return 333;
+            case ROOM_BREAKOUT_CALL:
+                return 20;
+            // ***************************
             default:
                 return 0;
         }

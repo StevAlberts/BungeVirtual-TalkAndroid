@@ -604,6 +604,14 @@ public class Conversation {
         ROOM_GROUP_CALL,
         ROOM_PUBLIC_CALL,
         ROOM_SYSTEM
+        // ************************
+        // module : Room type
+        ROOM_GROUP_COMMITTEE_CALL,
+        ROOM_PUBLIC_COMMITTEE_CALL,
+        ROOM_GROUP_PLENARY_CALL,
+        ROOM_PUBLIC_PLENARY_CALL,
+        ROMM_BREAKOUT_CALL, // to be implemented
+        // ************************
     }
 
 }

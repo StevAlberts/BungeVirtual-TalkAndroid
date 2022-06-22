@@ -85,10 +85,7 @@ import io.reactivex.schedulers.Schedulers
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
-import java.util.Calendar
-import java.util.Collections
-import java.util.Comparator
-import java.util.Locale
+import java.util.*
 import javax.inject.Inject
 
 @AutoInjector(NextcloudTalkApplication::class)
@@ -211,7 +208,7 @@ class ConversationInfoController(args: Bundle) :
                         currentDateTime = currentTimeCalendar,
                         show24HoursView = true,
                         dateTimeCallback = { _,
-                            dateTime ->
+                                             dateTime ->
                             reconfigureLobbyTimerView(dateTime)
                             submitLobbyChanges()
                         }
@@ -719,7 +716,7 @@ class ConversationInfoController(args: Bundle) :
             Conversation.ConversationType.ROOM_GROUP_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
                 R.drawable.ic_circular_group
             )
-            Conversation.ConversationType.ROOM_COMMITTEE_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
+            Conversation.ConversationType.ROOM_GROUP_COMMITTEE_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(
                 R.drawable.ic_circular_group
             )
             Conversation.ConversationType.ROOM_PUBLIC_CALL -> binding.avatarImage.hierarchy.setPlaceholderImage(

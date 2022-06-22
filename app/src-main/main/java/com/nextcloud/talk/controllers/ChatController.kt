@@ -38,16 +38,13 @@ import android.content.res.Resources
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.drawable.ColorDrawable
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
+import android.os.*
 import android.os.Build.VERSION_CODES.O
-import android.os.Bundle
-import android.os.Handler
-import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.provider.ContactsContract
 import android.text.Editable
 import android.text.InputFilter
@@ -55,21 +52,8 @@ import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
-import android.view.Gravity
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.MotionEvent
-import android.view.View
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
-import android.view.animation.LinearInterpolator
-import android.widget.AbsListView
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.PopupMenu
-import android.widget.RelativeLayout
-import android.widget.Toast
+import android.view.*
+import android.widget.*
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -102,18 +86,7 @@ import com.nextcloud.talk.R
 import com.nextcloud.talk.activities.CallActivity
 import com.nextcloud.talk.activities.MainActivity
 import com.nextcloud.talk.activities.TakePhotoActivity
-import com.nextcloud.talk.adapters.messages.IncomingLocationMessageViewHolder
-import com.nextcloud.talk.adapters.messages.IncomingPreviewMessageViewHolder
-import com.nextcloud.talk.adapters.messages.IncomingVoiceMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicIncomingTextMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicOutcomingTextMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicSystemMessageViewHolder
-import com.nextcloud.talk.adapters.messages.MagicUnreadNoticeMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingLocationMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingPreviewMessageViewHolder
-import com.nextcloud.talk.adapters.messages.OutcomingVoiceMessageViewHolder
-import com.nextcloud.talk.adapters.messages.TalkMessagesListAdapter
-import com.nextcloud.talk.adapters.messages.VoiceMessageInterface
+import com.nextcloud.talk.adapters.messages.*
 import com.nextcloud.talk.api.NcApi
 import com.nextcloud.talk.application.NextcloudTalkApplication
 import com.nextcloud.talk.callbacks.MentionAutocompleteCallback
@@ -142,19 +115,11 @@ import com.nextcloud.talk.ui.bottom.sheet.ProfileBottomSheet
 import com.nextcloud.talk.ui.dialog.AttachmentDialog
 import com.nextcloud.talk.ui.recyclerview.MessageSwipeActions
 import com.nextcloud.talk.ui.recyclerview.MessageSwipeCallback
-import com.nextcloud.talk.utils.ApiUtils
-import com.nextcloud.talk.utils.ConductorRemapping
+import com.nextcloud.talk.utils.*
 import com.nextcloud.talk.utils.ConductorRemapping.remapChatController
-import com.nextcloud.talk.utils.ContactUtils
-import com.nextcloud.talk.utils.DateUtils
-import com.nextcloud.talk.utils.DisplayUtils
-import com.nextcloud.talk.utils.ImageEmojiEditText
-import com.nextcloud.talk.utils.KeyboardUtils
-import com.nextcloud.talk.utils.MagicCharPolicy
-import com.nextcloud.talk.utils.NotificationUtils
-import com.nextcloud.talk.utils.UriUtils
 import com.nextcloud.talk.utils.bundle.BundleKeys
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ACTIVE_CONVERSATION
+import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_CONVERSATION_TYPE
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ROOM_ID
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_ROOM_TOKEN
 import com.nextcloud.talk.utils.bundle.BundleKeys.KEY_USER_ENTITY
@@ -184,16 +149,12 @@ import org.parceler.Parcels
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.File
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
-import java.util.ArrayList
-import java.util.Date
-import java.util.HashMap
-import java.util.Objects
 import java.util.*
 import java.util.concurrent.ExecutionException
 import javax.inject.Inject
+
 
 @AutoInjector(NextcloudTalkApplication::class)
 class ChatController(args: Bundle) :
@@ -224,6 +185,7 @@ class ChatController(args: Bundle) :
     val disposableList = ArrayList<Disposable>()
 
     var roomToken: String? = null
+    var conversationType: Conversation.ConversationType? = null
     val conversationUser: UserEntity?
     val roomPassword: String
     var credentials: String? = null
@@ -269,6 +231,11 @@ class ChatController(args: Bundle) :
     lateinit var mediaPlayerHandler: Handler
     var currentlyPlayedVoiceMessage: ChatMessage? = null
 
+    // ***************************
+    // Module : Lobby
+    val lobbyPlayer = MediaPlayer()
+    // ***************************
+
     init {
         Log.d(TAG, "init ChatController")
 
@@ -278,6 +245,7 @@ class ChatController(args: Bundle) :
         this.conversationUser = args.getParcelable(KEY_USER_ENTITY)
         this.roomId = args.getString(KEY_ROOM_ID, "")
         this.roomToken = args.getString(KEY_ROOM_TOKEN, "")
+        this.conversationType = args.get(KEY_CONVERSATION_TYPE) as Conversation.ConversationType?
         this.sharedText = args.getString(BundleKeys.KEY_SHARED_TEXT, "")
 
         Log.d(TAG, "   roomToken = $roomToken")
@@ -305,9 +273,11 @@ class ChatController(args: Bundle) :
     }
 
     private fun getRoomInfo() {
+        Log.d(TAG, "getRoomInfo ...")
         val shouldRepeat = CapabilitiesUtil.hasSpreedFeatureCapability(conversationUser, "webinary-lobby")
         if (shouldRepeat) {
             checkingLobbyStatus = true
+            checkLobbyState()
         }
 
         if (conversationUser != null) {
@@ -323,18 +293,27 @@ class ChatController(args: Bundle) :
 
                     @Suppress("Detekt.TooGenericExceptionCaught")
                     override fun onNext(roomOverall: RoomOverall) {
+
                         currentConversation = roomOverall.ocs.data
                         Log.d(
                             TAG,
                             "getRoomInfo. token: " + currentConversation?.getToken() +
                                 " sessionId: " + currentConversation?.sessionId
                         )
+                        //if no call in going on and meeting activity is started, then drop the user from the room
+                        if (!currentConversation!!.hasCall &&  CallActivity.getmInstanceActivity()!=null) {
+                            CallActivity.getmInstanceActivity().meetingEnded()
+                            leaveRoom()
+                        }
+
                         loadAvatarForStatusBar()
 
                         setTitle()
                         try {
                             setupMentionAutocomplete()
                             checkReadOnlyState()
+
+                            Log.d(TAG,"Checking lobby...")
                             checkLobbyState()
 
                             if (!inConversation) {
@@ -352,16 +331,11 @@ class ChatController(args: Bundle) :
 
                     override fun onComplete() {
                         if (shouldRepeat) {
-                            if (lobbyTimerHandler != null) {
-                                lobbyTimerHandler != Handler()
-                                Log.d(TAG,"STOP LOBBY ANTHEM")
-
-                                // stop anthem
-                                lobbyPlayer.stop()
-
+                            if (lobbyTimerHandler == null) {
+                                lobbyTimerHandler = Handler()
                             }
 
-//                            lobbyTimerHandler?.postDelayed({ getRoomInfo() }, LOBBY_TIMER_DELAY)
+                            lobbyTimerHandler?.postDelayed({ getRoomInfo() }, LOBBY_TIMER_DELAY)
                         }
                     }
                 })
@@ -388,7 +362,6 @@ class ChatController(args: Bundle) :
                             roomToken = conversation.token
                             currentConversation = conversation
                             setTitle()
-                            checkLobbyState()
                             getRoomInfo()
                             break
                         }
@@ -699,101 +672,101 @@ class ChatController(args: Bundle) :
         var voiceRecordStartTime = 0L
         var voiceRecordEndTime = 0L
 
-        binding.messageInputView.recordAudioButton.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                view.performClick()
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        if (!isRecordAudioPermissionGranted()) {
-                            requestRecordAudioPermissions()
-                            return true
-                        }
-                        if (!UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
-                            UploadAndShareFilesWorker.requestStoragePermission(this@ChatController)
-                            return true
-                        }
-
-                        voiceRecordStartTime = System.currentTimeMillis()
-
-                        setVoiceRecordFileName()
-                        startAudioRecording(currentVoiceRecordFile)
-                        downX = event.x
-                        showRecordAudioUi(true)
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        Log.d(TAG, "ACTION_CANCEL. same as for UP")
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-
-                        stopAndDiscardAudioRecording()
-                        showRecordAudioUi(false)
-                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        Log.d(TAG, "ACTION_UP. stop recording??")
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-                        showRecordAudioUi(false)
-
-                        voiceRecordEndTime = System.currentTimeMillis()
-                        val voiceRecordDuration = voiceRecordEndTime - voiceRecordStartTime
-                        if (voiceRecordDuration < MINIMUM_VOICE_RECORD_DURATION) {
-                            Log.d(TAG, "voiceRecordDuration: " + voiceRecordDuration)
-                            Toast.makeText(
-                                context,
-                                context!!.getString(R.string.nc_voice_message_hold_to_record_info),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            stopAndDiscardAudioRecording()
-                            return true
-                        } else {
-                            voiceRecordStartTime = 0L
-                            voiceRecordEndTime = 0L
-                            stopAndSendAudioRecording()
-                        }
-
-                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        Log.d(TAG, "ACTION_MOVE.")
-
-                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
-                            return true
-                        }
-
-                        showRecordAudioUi(true)
-
-                        if (sliderInitX == 0.0F) {
-                            sliderInitX = binding.messageInputView.slideToCancelDescription.x
-                        }
-
-                        val movedX: Float = event.x
-                        deltaX = movedX - downX
-
-                        // only allow slide to left
-                        if (binding.messageInputView.slideToCancelDescription.x > sliderInitX) {
-                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                        }
-
-                        if (binding.messageInputView.slideToCancelDescription.x < VOICE_RECORD_CANCEL_SLIDER_X) {
-                            Log.d(TAG, "stopping recording because slider was moved to left")
-                            stopAndDiscardAudioRecording()
-                            showRecordAudioUi(false)
-                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
-                            return true
-                        } else {
-                            binding.messageInputView.slideToCancelDescription.x = binding.messageInputView
-                                .slideToCancelDescription.x + deltaX
-                            downX = movedX
-                        }
-                    }
-                }
-
-                return v?.onTouchEvent(event) ?: true
-            }
-        })
+//        binding.messageInputView.recordAudioButton.setOnTouchListener(object : View.OnTouchListener {
+//            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+//                view.performClick()
+//                when (event?.action) {
+//                    MotionEvent.ACTION_DOWN -> {
+//                        if (!isRecordAudioPermissionGranted()) {
+//                            requestRecordAudioPermissions()
+//                            return true
+//                        }
+//                        if (!UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
+//                            UploadAndShareFilesWorker.requestStoragePermission(this@ChatController)
+//                            return true
+//                        }
+//
+//                        voiceRecordStartTime = System.currentTimeMillis()
+//
+//                        setVoiceRecordFileName()
+//                        startAudioRecording(currentVoiceRecordFile)
+//                        downX = event.x
+//                        showRecordAudioUi(true)
+//                    }
+//                    MotionEvent.ACTION_CANCEL -> {
+//                        Log.d(TAG, "ACTION_CANCEL. same as for UP")
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//
+//                        stopAndDiscardAudioRecording()
+//                        showRecordAudioUi(false)
+//                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                    }
+//                    MotionEvent.ACTION_UP -> {
+//                        Log.d(TAG, "ACTION_UP. stop recording??")
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//                        showRecordAudioUi(false)
+//
+//                        voiceRecordEndTime = System.currentTimeMillis()
+//                        val voiceRecordDuration = voiceRecordEndTime - voiceRecordStartTime
+//                        if (voiceRecordDuration < MINIMUM_VOICE_RECORD_DURATION) {
+//                            Log.d(TAG, "voiceRecordDuration: " + voiceRecordDuration)
+//                            Toast.makeText(
+//                                context,
+//                                context!!.getString(R.string.nc_voice_message_hold_to_record_info),
+//                                Toast.LENGTH_SHORT
+//                            ).show()
+//                            stopAndDiscardAudioRecording()
+//                            return true
+//                        } else {
+//                            voiceRecordStartTime = 0L
+//                            voiceRecordEndTime = 0L
+//                            stopAndSendAudioRecording()
+//                        }
+//
+//                        binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                    }
+//                    MotionEvent.ACTION_MOVE -> {
+//                        Log.d(TAG, "ACTION_MOVE.")
+//
+//                        if (!isVoiceRecordingInProgress || !isRecordAudioPermissionGranted()) {
+//                            return true
+//                        }
+//
+//                        showRecordAudioUi(true)
+//
+//                        if (sliderInitX == 0.0F) {
+//                            sliderInitX = binding.messageInputView.slideToCancelDescription.x
+//                        }
+//
+//                        val movedX: Float = event.x
+//                        deltaX = movedX - downX
+//
+//                        // only allow slide to left
+//                        if (binding.messageInputView.slideToCancelDescription.x > sliderInitX) {
+//                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                        }
+//
+//                        if (binding.messageInputView.slideToCancelDescription.x < VOICE_RECORD_CANCEL_SLIDER_X) {
+//                            Log.d(TAG, "stopping recording because slider was moved to left")
+//                            stopAndDiscardAudioRecording()
+//                            showRecordAudioUi(false)
+//                            binding.messageInputView.slideToCancelDescription.x = sliderInitX
+//                            return true
+//                        } else {
+//                            binding.messageInputView.slideToCancelDescription.x = binding.messageInputView
+//                                .slideToCancelDescription.x + deltaX
+//                            downX = movedX
+//                        }
+//                    }
+//                }
+//
+//                return v?.onTouchEvent(event) ?: true
+//            }
+//        })
 
         binding.messageInputView.inputEditText?.setText(sharedText)
         binding.messageInputView.setAttachmentsListener {
@@ -820,6 +793,11 @@ class ChatController(args: Bundle) :
                 getRoomInfo()
             }
         }
+
+        // ***************************
+        // Module : Lobby
+        initPlayer()
+        // ***************************
         super.onViewBound(view)
     }
 
@@ -983,28 +961,28 @@ class ChatController(args: Bundle) :
         currentVoiceRecordFile = "${context!!.cacheDir.absolutePath}/$fileName"
     }
 
-    private fun showRecordAudioUi(show: Boolean) {
-        if (show) {
-            binding.messageInputView.microphoneEnabledInfo.visibility = View.VISIBLE
-            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.VISIBLE
-            binding.messageInputView.audioRecordDuration.visibility = View.VISIBLE
-            binding.messageInputView.slideToCancelDescription.visibility = View.VISIBLE
-            binding.messageInputView.attachmentButton.visibility = View.GONE
-            binding.messageInputView.smileyButton.visibility = View.GONE
-            binding.messageInputView.messageInput.visibility = View.GONE
-            binding.messageInputView.messageInput.hint = ""
-        } else {
-            binding.messageInputView.microphoneEnabledInfo.visibility = View.GONE
-            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.GONE
-            binding.messageInputView.audioRecordDuration.visibility = View.GONE
-            binding.messageInputView.slideToCancelDescription.visibility = View.GONE
-            binding.messageInputView.attachmentButton.visibility = View.VISIBLE
-            binding.messageInputView.smileyButton.visibility = View.VISIBLE
-            binding.messageInputView.messageInput.visibility = View.VISIBLE
-            binding.messageInputView.messageInput.hint =
-                context?.resources?.getString(R.string.nc_hint_enter_a_message)
-        }
-    }
+//    private fun showRecordAudioUi(show: Boolean) {
+//        if (show) {
+//            binding.messageInputView.microphoneEnabledInfo.visibility = View.VISIBLE
+//            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.VISIBLE
+//            binding.messageInputView.audioRecordDuration.visibility = View.VISIBLE
+//            binding.messageInputView.slideToCancelDescription.visibility = View.VISIBLE
+//            binding.messageInputView.attachmentButton.visibility = View.GONE
+//            binding.messageInputView.smileyButton.visibility = View.GONE
+//            binding.messageInputView.messageInput.visibility = View.GONE
+//            binding.messageInputView.messageInput.hint = ""
+//        } else {
+//            binding.messageInputView.microphoneEnabledInfo.visibility = View.GONE
+//            binding.messageInputView.microphoneEnabledInfoBackground.visibility = View.GONE
+//            binding.messageInputView.audioRecordDuration.visibility = View.GONE
+//            binding.messageInputView.slideToCancelDescription.visibility = View.GONE
+//            binding.messageInputView.attachmentButton.visibility = View.VISIBLE
+//            binding.messageInputView.smileyButton.visibility = View.VISIBLE
+//            binding.messageInputView.messageInput.visibility = View.VISIBLE
+//            binding.messageInputView.messageInput.hint =
+//                context?.resources?.getString(R.string.nc_hint_enter_a_message)
+//        }
+//    }
 
     private fun isRecordAudioPermissionGranted(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -1028,76 +1006,76 @@ class ChatController(args: Bundle) :
         }
     }
 
-    private fun startAudioRecording(file: String) {
-        binding.messageInputView.audioRecordDuration.base = SystemClock.elapsedRealtime()
-        binding.messageInputView.audioRecordDuration.start()
+//    private fun startAudioRecording(file: String) {
+//        binding.messageInputView.audioRecordDuration.base = SystemClock.elapsedRealtime()
+//        binding.messageInputView.audioRecordDuration.start()
+//
+//        val animation: Animation = AlphaAnimation(1.0f, 0.0f)
+//        animation.duration = 750
+//        animation.interpolator = LinearInterpolator()
+//        animation.repeatCount = Animation.INFINITE
+//        animation.repeatMode = Animation.REVERSE
+//        binding.messageInputView.microphoneEnabledInfo.startAnimation(animation)
+//
+//        recorder = MediaRecorder().apply {
+//            setAudioSource(MediaRecorder.AudioSource.MIC)
+//            setOutputFile(file)
+//            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+//            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+//
+//            try {
+//                prepare()
+//            } catch (e: IOException) {
+//                Log.e(TAG, "prepare for audio recording failed")
+//            }
+//
+//            try {
+//                start()
+//                isVoiceRecordingInProgress = true
+//            } catch (e: IllegalStateException) {
+//                Log.e(TAG, "start for audio recording failed")
+//            }
+//
+//            vibrate()
+//        }
+//    }
 
-        val animation: Animation = AlphaAnimation(1.0f, 0.0f)
-        animation.duration = 750
-        animation.interpolator = LinearInterpolator()
-        animation.repeatCount = Animation.INFINITE
-        animation.repeatMode = Animation.REVERSE
-        binding.messageInputView.microphoneEnabledInfo.startAnimation(animation)
+//    private fun stopAndSendAudioRecording() {
+//        stopAudioRecording()
+//        val uri = Uri.fromFile(File(currentVoiceRecordFile))
+//        uploadFiles(mutableListOf(uri.toString()), true)
+//    }
 
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFile(file)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-
-            try {
-                prepare()
-            } catch (e: IOException) {
-                Log.e(TAG, "prepare for audio recording failed")
-            }
-
-            try {
-                start()
-                isVoiceRecordingInProgress = true
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "start for audio recording failed")
-            }
-
-            vibrate()
-        }
-    }
-
-    private fun stopAndSendAudioRecording() {
-        stopAudioRecording()
-        val uri = Uri.fromFile(File(currentVoiceRecordFile))
-        uploadFiles(mutableListOf(uri.toString()), true)
-    }
-
-    private fun stopAndDiscardAudioRecording() {
-        stopAudioRecording()
-
-        val cachedFile = File(currentVoiceRecordFile)
-        cachedFile.delete()
-    }
+//    private fun stopAndDiscardAudioRecording() {
+//        stopAudioRecording()
+//
+//        val cachedFile = File(currentVoiceRecordFile)
+//        cachedFile.delete()
+//    }
 
     @Suppress("Detekt.TooGenericExceptionCaught")
-    private fun stopAudioRecording() {
-        binding.messageInputView.audioRecordDuration.stop()
-        binding.messageInputView.microphoneEnabledInfo.clearAnimation()
-
-        if (isVoiceRecordingInProgress) {
-            recorder?.apply {
-                try {
-                    stop()
-                    release()
-                    isVoiceRecordingInProgress = false
-                    Log.d(TAG, "stopped recorder. isVoiceRecordingInProgress = false")
-                } catch (e: RuntimeException) {
-                    Log.w(TAG, "error while stopping recorder!")
-                }
-
-                vibrate()
-            }
-            recorder = null
-        } else {
-            Log.e(TAG, "tried to stop audio recorder but it was not recording")
-        }
-    }
+//    private fun stopAudioRecording() {
+////        binding.messageInputView.audioRecordDuration.stop()
+////        binding.messageInputView.microphoneEnabledInfo.clearAnimation()
+//
+//        if (isVoiceRecordingInProgress) {
+//            recorder?.apply {
+//                try {
+//                    stop()
+//                    release()
+//                    isVoiceRecordingInProgress = false
+//                    Log.d(TAG, "stopped recorder. isVoiceRecordingInProgress = false")
+//                } catch (e: RuntimeException) {
+//                    Log.w(TAG, "error while stopping recorder!")
+//                }
+//
+//                vibrate()
+//            }
+//            recorder = null
+//        } else {
+//            Log.e(TAG, "tried to stop audio recorder but it was not recording")
+//        }
+//    }
 
     fun vibrate() {
         val vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -1165,142 +1143,28 @@ class ChatController(args: Bundle) :
         }
     }
 
-//    private fun checkLobbyState() {
-//        // initializing media player
-//        val lobbyPlayer = MediaPlayer()
-//
-//        if (currentConversation != null &&
-//            currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
-//            isAlive()
-//        ) {
-//
-//            if (!checkingLobbyStatus) {
-//                getRoomInfo()
-//            }
-//
-//            if (currentConversation?.shouldShowLobby(conversationUser) ?: false {
-//                binding.lobby.lobbyView.visibility = View.VISIBLE
-//                binding.messagesListView.visibility = View.GONE
-//                binding.messageInputView.visibility = View.GONE
-//                binding.progressBar.visibility = View.GONE
-//
-//                val sb = StringBuilder()
-//                sb.append(resources!!.getText(R.string.nc_lobby_waiting))
-//                    .append("\n\n")
-//
-//                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer !=
-//                    0L
-//                ) {
-//                    val timestamp = currentConversation?.lobbyTimer ?: 0
-//                    val stringWithStartDate = String.format(
-//                        resources!!.getString(R.string.nc_lobby_start_date),
-//                        DateUtils.getLocalDateStringFromTimestampForLobby(timestamp)
-//                    )
-//                    val relativeTime = DateUtils.relativeStartTimeForLobby(timestamp, resources!!)
-//
-//                    sb.append("$stringWithStartDate - $relativeTime")
-//                        .append("\n\n")
-//                }
-//
-//                sb.append(currentConversation!!.description)
-//                binding.lobby.lobbyTextView.text = sb.toString()
-//
-//                // play lobby anthem
-//
-//                val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
-//
-//                // set the media player audio stream type
-//                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
-//
-//                // set the media player data source
-//                lobbyPlayer.setDataSource(audioUrl)
-//
-//                // set the media player on completion listener
-//                lobbyPlayer.setOnCompletionListener {
-//                    // play the media player audio
-//                    anthemPlayer?.start()
-////                }
-//
-//                // prepare the media player
-//                lobbyPlayer.prepare()
-//
-//                // play the media player audio
-//                lobbyPlayer.start()
-//            } else {
-//                binding.lobby.lobbyView.visibility = View.GONE
-//                binding.messagesListView.visibility = View.VISIBLE
-//                binding.messageInputView.inputEditText?.visibility = View.VISIBLE
-//                Log.d(TAG,"STOP LOBBY ANTHEM")
-//
-//                // stop anthem
-//                lobbyPlayer.stop()
-//                if (isFirstMessagesProcessing && pastPreconditionFailed) {
-//                    pastPreconditionFailed = false
-//                    pullChatMessages(0)
-//                } else if (futurePreconditionFailed) {
-//                    futurePreconditionFailed = false
-//                    pullChatMessages(1)
-//                }
-//            }
-//        } else {
-//            binding.lobby.lobbyView.visibility = View.GONE
-//            binding.messagesListView.visibility = View.VISIBLE
-//            binding.messageInputView.inputEditText?.visibility = View.VISIBLE
-//
-////            Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
-////
-////            // stop anthem
-////            lobbyPlayer.stop()
-//        }
-//    }
-private fun checkLobbyState() {
-    // initializing media player
-    val lobbyPlayer = MediaPlayer()
+    private fun checkLobbyState() {
 
-    if (currentConversation != null &&
-        currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
-        isAlive()
-    ) {
+        if (currentConversation != null &&
+            currentConversation?.isLobbyViewApplicable(conversationUser) ?: false &&
+            isAlive()
+        ) {
 
-        if (checkingLobbyStatus) {
-            getRoomInfo()
-        }
+            if (!checkingLobbyStatus) {
+                getRoomInfo()
+            }
 
-        if (currentConversation?.shouldShowLobby(conversationUser) ?: false) {
-            binding.lobby.lobbyView.visibility = View.VISIBLE
-            binding.messagesListView.visibility = View.GONE
-            binding.messageInputView.visibility = View.GONE
-            binding.progressBar.visibility = View.GONE
+            if (currentConversation?.shouldShowLobby(conversationUser) ?: false) {
+                binding.lobby.lobbyView.visibility = View.VISIBLE
+                binding.messagesListView.visibility = View.GONE
+                binding.messageInputView.visibility = View.GONE
+                binding.progressBar.visibility = View.GONE
 
-            val sb = StringBuilder()
-            sb.append(resources!!.getText(R.string.nc_lobby_waiting))
-                .append("\n\n")
+                val sb = StringBuilder()
+                sb.append(resources!!.getText(R.string.nc_lobby_waiting))
+                    .append("\n\n")
 
-            // play lobby anthem
-
-            val audioUrl = "https://upload.wikimedia.org/wikipedia/commons/2/29/National_anthem_of_Kenya%2C_performed_by_the_United_States_Navy_Band.wav"
-
-            // set the media player audio stream type
-            lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
-
-            // set the media player data source
-            lobbyPlayer.setDataSource(audioUrl)
-
-            // set the media player on completion listener
-            lobbyPlayer.setOnCompletionListener {
-                // play the media player audio
-                anthemPlayer?.start()
-//                }
-
-                // prepare the media player
-                lobbyPlayer.prepare()
-
-                // play the media player audio
-                lobbyPlayer.start()
-
-                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer !=
-                    0L
-                ) {
+                if (currentConversation?.lobbyTimer != null && currentConversation?.lobbyTimer != 0L) {
                     val timestamp = currentConversation?.lobbyTimer ?: 0
                     val stringWithStartDate = String.format(
                         resources!!.getString(R.string.nc_lobby_start_date),
@@ -1314,14 +1178,38 @@ private fun checkLobbyState() {
 
                 sb.append(currentConversation!!.description)
                 binding.lobby.lobbyTextView.text = sb.toString()
+
+                    // ***************************
+                    // Module : Lobby
+                    // play lobby anthem
+                    // play the media player audio
+                    if(!lobbyPlayer.isPlaying){
+                        lobbyPlayer.start()
+                    }
+                    // ***************************
+                }
+
+                // set the media player audio stream type
+//                lobbyPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
+//
+//                // set the media player data source
+//                lobbyPlayer.setDataSource(audioUrl)
+//
+//                // prepare the media player
+//                lobbyPlayer.prepare()
+//
+//                // set the media player on completion listener
+//                lobbyPlayer.setOnCompletionListener {
+//                    // play the media player audio
+//                    lobbyPlayer.start()
+//                }
+
+
+
             } else {
                 binding.lobby.lobbyView.visibility = View.GONE
                 binding.messagesListView.visibility = View.VISIBLE
                 binding.messageInputView.inputEditText?.visibility = View.VISIBLE
-                Log.d(TAG, "STOP LOBBY ANTHEM")
-
-                // stop anthem
-                lobbyPlayer.stop()
                 if (isFirstMessagesProcessing && pastPreconditionFailed) {
                     pastPreconditionFailed = false
                     pullChatMessages(0)
@@ -1329,14 +1217,51 @@ private fun checkLobbyState() {
                     futurePreconditionFailed = false
                     pullChatMessages(1)
                 }
+
+                Log.d(TAG,"STOP LOBBY ANTHEM")
+
+                // ***************************
+                // Module : Lobby
+                // stop anthem
+                if(lobbyPlayer.isPlaying){
+                    lobbyPlayer.stop()
+                }
+                // ***************************
+
             }
         } else {
             binding.lobby.lobbyView.visibility = View.GONE
             binding.messagesListView.visibility = View.VISIBLE
             binding.messageInputView.inputEditText?.visibility = View.VISIBLE
+
+            Log.d(TAG,"STOP ELSE LOBBY ANTHEM")
+
+            // stop anthem
+            if(lobbyPlayer.isPlaying){
+                lobbyPlayer.stop()
+            }
         }
     }
-}
+
+    // ***************************
+    // Module : Lobby
+    fun initPlayer() {
+        // initializing media player
+
+        val audioUrl = "https://instrumentals.com.ng/kenya-national-anthem-instrumental/"
+
+        lobbyPlayer.apply {
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+            setDataSource(audioUrl)
+            prepare() // might take long! (for buffering, etc)
+    }
+    // ***************************
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         if (resultCode != RESULT_OK) {
             Log.e(TAG, "resultCode for received intent was != ok")
@@ -1379,8 +1304,7 @@ private fun checkLobbyState() {
                     .setPositiveButtonColorRes(R.color.nc_darkGreen)
                     .setTitle(confirmationQuestion)
                     .setMessage(filenamesWithLinebreaks.toString())
-                    .setPositiveButton(R.string.nc_yes) { v ->
-                        .setPositiveButton(R.string.nc_yes) {
+                    .setPositiveButton(R.string.nc_yes) {
                         if (UploadAndShareFilesWorker.isStoragePermissionGranted(context!!)) {
                             uploadFiles(filesToUpload, false)
                         } else {
@@ -1591,7 +1515,6 @@ private fun checkLobbyState() {
         bundle.putParcelable(BundleKeys.KEY_USER_ENTITY, conversationUser)
         bundle.putString(BundleKeys.KEY_ROOM_TOKEN, roomToken)
         bundle.putBoolean(BundleKeys.KEY_ROOM_ONE_TO_ONE, inOneToOneCall())
-        bundle.putBoolean(BundleKeys.KEY_ROOM_COMMITTEE_CALL, inOneToOneCall())
         router.pushController(
             RouterTransaction.with(ConversationInfoController(bundle))
                 .pushChangeHandler(HorizontalChangeHandler())
@@ -1654,7 +1577,7 @@ private fun checkLobbyState() {
                     ContextCompat.getDrawable(context!!, R.drawable.ic_insert_emoticon_black_24dp)
                 )
             }.setOnEmojiClickListener { emoji,
-                imageView ->
+                                        imageView ->
                 binding.messageInputView.inputEditText?.editableText?.append(" ")
             }.build(it)
         }
@@ -1874,7 +1797,6 @@ private fun checkLobbyState() {
 
                     if (lobbyTimerHandler != null) {
                         lobbyTimerHandler?.removeCallbacksAndMessages(null)
-//                        mediaPlayer.stop()
                     }
 
                     if (magicWebSocketInstance != null && currentConversation != null) {
@@ -2379,7 +2301,9 @@ private fun checkLobbyState() {
                 return true
             }
             R.id.conversation_video_call -> {
-                if (conversationVideoMenuItem?.icon?.alpha == FULLY_OPAQUE_INT) {
+                Log.d(TAG, "join meeting tapped ")
+                if (true) {
+                    Log.d(TAG, "join meeting tapped true ")
                     startACall(false)
                     return true
                 }
@@ -2425,14 +2349,10 @@ private fun checkLobbyState() {
     }
 
     private fun startACall(isVoiceOnlyCall: Boolean) {
-        if (currentConversation?.canStartCall == false && currentConversation?.hasCall == false) {
-            Toast.makeText(context, R.string.startCallForbidden, Toast.LENGTH_LONG).show()
-        } else {
-            ApplicationWideCurrentRoomHolder.getInstance().isDialing = true
-            val callIntent = getIntentForCall(isVoiceOnlyCall)
-            if (callIntent != null) {
-                startActivity(callIntent)
-            }
+        ApplicationWideCurrentRoomHolder.getInstance().isDialing = true
+        val callIntent = getIntentForCall(isVoiceOnlyCall)
+        if (callIntent != null) {
+            startActivity(callIntent)
         }
     }
 
@@ -2445,6 +2365,7 @@ private fun checkLobbyState() {
             bundle.putString(BundleKeys.KEY_CONVERSATION_PASSWORD, roomPassword)
             bundle.putString(BundleKeys.KEY_MODIFIED_BASE_URL, conversationUser?.baseUrl)
             bundle.putString(BundleKeys.KEY_CONVERSATION_NAME, it.displayName)
+            bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, it.type)
 
             if (isVoiceOnlyCall) {
                 bundle.putBoolean(BundleKeys.KEY_CALL_VOICE_ONLY, true)
@@ -2561,6 +2482,8 @@ private fun checkLobbyState() {
                                     bundle.putParcelable(KEY_USER_ENTITY, conversationUser)
                                     bundle.putString(KEY_ROOM_TOKEN, roomOverall.getOcs().getData().getToken())
                                     bundle.putString(KEY_ROOM_ID, roomOverall.getOcs().getData().getRoomId())
+                                    bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, roomOverall.getOcs().getData()
+                                        .type)
 
                                     // FIXME once APIv2+ is used only, the createRoom already returns all the data
                                     ncApi!!.getRoom(
@@ -2670,7 +2593,7 @@ private fun checkLobbyState() {
             menu.findItem(R.id.action_forward_message).isVisible =
                 ChatMessage.MessageType.REGULAR_TEXT_MESSAGE == message.getMessageType()
             menu.findItem(R.id.action_mark_as_unread).isVisible = message.previousMessageId > NO_PREVIOUS_MESSAGE_ID &&
-                ChatMessage.MessageType.SYSTEM_MESSAGE != message.getMessageType() && BuildConfig.DEBUG
+                ChatMessage.MessageType.SYSTEM_MESSAGE != message.getMessageType()
             if (menu.hasVisibleItems()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     setForceShowIcon(true)
@@ -2736,10 +2659,10 @@ private fun checkLobbyState() {
     private fun showMicrophoneButton(show: Boolean) {
         if (show && CapabilitiesUtil.hasSpreedFeatureCapability(conversationUser, "voice-message-sharing")) {
             binding.messageInputView.messageSendButton.visibility = View.GONE
-            binding.messageInputView.recordAudioButton.visibility = View.VISIBLE
+//            binding.messageInputView.recordAudioButton.visibility = View.VISIBLE
         } else {
             binding.messageInputView.messageSendButton.visibility = View.VISIBLE
-            binding.messageInputView.recordAudioButton.visibility = View.GONE
+//            binding.messageInputView.recordAudioButton.visibility = View.GONE
         }
     }
 
@@ -2761,7 +2684,7 @@ private fun checkLobbyState() {
 
         if (message.isDeleted) return false
 
-        if (message.hasFileAttachment()) return false
+//        if (message.hasFileAttachment()) return false
 
         if (OBJECT_MESSAGE.equals(message.message)) return false
 
@@ -2850,6 +2773,8 @@ private fun checkLobbyState() {
                         bundle.putParcelable(KEY_USER_ENTITY, conversationUser)
                         bundle.putString(KEY_ROOM_TOKEN, roomOverall.ocs.data.token)
                         bundle.putString(KEY_ROOM_ID, roomOverall.ocs.data.roomId)
+                        bundle.putSerializable(BundleKeys.KEY_CONVERSATION_TYPE, roomOverall.getOcs().getData()
+                            .type)
 
                         if (conversationUser != null) {
                             bundle.putParcelable(

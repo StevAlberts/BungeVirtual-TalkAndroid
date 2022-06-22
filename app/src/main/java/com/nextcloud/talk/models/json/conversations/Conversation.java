@@ -144,7 +144,18 @@ public class Conversation {
     }
 
     public boolean isLobbyViewApplicable(UserEntity conversationUser) {
-        return !canModerate(conversationUser) && (getType() == ConversationType.ROOM_GROUP_CALL || getType() == ConversationType.ROOM_PUBLIC_CALL);
+        // REPLACED
+        // return !canModerate(conversationUser) && (getType() == ConversationType.ROOM_GROUP_CALL || getType() == ConversationType.ROOM_PUBLIC_CALL);
+
+        // REPLACED
+        // ***************************
+        // Module : Room Type
+        return !canModerate(conversationUser) &&
+            (
+                getType() == ConversationType.ROOM_GROUP_CALL || getType() == ConversationType.ROOM_PUBLIC_CALL || // same as staff
+                    getType() == ConversationType.ROOM_GROUP_COMMITTEE_CALL || getType() == ConversationType.ROOM_PUBLIC_COMMITTEE_CALL ||
+                    getType() == ConversationType.ROOM_GROUP_PLENARY_CALL || getType() == ConversationType.ROOM_PUBLIC_PLENARY_CALL);
+        // ***************************
     }
 
     public boolean isNameEditable(UserEntity conversationUser) {
@@ -581,10 +592,14 @@ public class Conversation {
         ROOM_GROUP_CALL,
         ROOM_PUBLIC_CALL,
         ROOM_SYSTEM,
-        ROOM_PLENARY_CALL,
-        ROOM_COMMITTEE_CALL,
-        ROOM_PLENARY_PUBLIC_CALL,
-        ROOM_COMMITTEE_PUBLIC_CALL,
+        // ***************************
+        // Module : Room Type
+        ROOM_GROUP_COMMITTEE_CALL,
+        ROOM_PUBLIC_COMMITTEE_CALL,
+        ROOM_GROUP_PLENARY_CALL,
+        ROOM_PUBLIC_PLENARY_CALL,
+        ROOM_BREAKOUT_CALL,
+        // ***************************
     }
 
 }

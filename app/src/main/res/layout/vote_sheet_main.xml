@@ -62,10 +62,10 @@
 <!--                        android:onClick="radioButtonhandler"/>-->
 
 <!--                    <RadioButton-->
-<!--                        android:id="@+id/voteMaybe"-->
+<!--                        android:id="@+id/voteAbstain"-->
 <!--                        android:layout_width="match_parent"-->
 <!--                        android:layout_height="wrap_content"-->
-<!--                        android:text="MAYBE"-->
+<!--                        android:text=""-->
 <!--                        android:onClick="radioButtonhandler"/>-->
 <!--                </RadioGroup>-->
             </LinearLayout>

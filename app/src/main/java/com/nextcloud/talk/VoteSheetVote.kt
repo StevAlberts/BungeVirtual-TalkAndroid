@@ -9,7 +9,7 @@ class VoteSheetVote : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-//        setContentView(R.layout.vote_sheet_vote)
+        setContentView(R.layout.vote_sheet_vote)
     }
 
 //    fun onRadioButtonClicked(view: View) {

@@ -20,7 +20,7 @@
                 android:id="@+id/voteResultsText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Members who have voted: 1"
+                android:text="Members who have voted: "
                 android:textSize="20sp"
                 android:textColor="@color/black"
                 android:textAlignment="center"
@@ -30,14 +30,15 @@
                 android:id="@+id/voteSharesText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Total verified voters: 1"
+                android:text="Total verified voters: "
                 android:layout_marginTop="8dp"
                 android:textSize="20sp"
                 android:textColor="@color/black"
                 android:textAlignment="center"
                 android:padding="2dp" />
 
-            <!--            <include layout="@layout/vote_sheet_otp"/>-->
+<!--                        <include layout="@layout/vote_sheet_otp"/>-->
+            <include layout="@layout/vote_sheet_otp"/>
 
 
         </LinearLayout>

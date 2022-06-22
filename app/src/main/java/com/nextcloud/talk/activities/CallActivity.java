@@ -365,10 +365,15 @@ public class CallActivity extends CallBaseActivity {
 //    private ArrayList<JSONObject> voteOptions = new ArrayList<>();
     private ArrayList<JSONObject> voteOptions = new ArrayList<>();
 
-    private int voteResultsCount = 0;
-    private int voteSharesCount = 0;
+    public int voteResultsCount = 0;
+    public int voteSharesCount = 0;
 
     // Module: Follow video
+    private Button button;
+    View convertView = null;
+
+    private SurfaceViewRenderer surfaceViewRenderer;
+
 //    private final CallActivity mContext;
 //    private final LinearLayout callInfosLinearLayout;
     private GridView gridView;
@@ -460,6 +465,14 @@ public class CallActivity extends CallBaseActivity {
         initKikaoControls();
 
         // Module: Follow video
+        button = findViewById(R.id.button_close);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Do something in response to button click
+                stopFollowingVideo(v);
+            }
+        });
+
         gridView = findViewById(R.id.gridview);
         gridView.setOnItemClickListener(messageClickedHandler);
         // Module: END Follow video
@@ -1456,10 +1469,10 @@ public class CallActivity extends CallBaseActivity {
                         super.onAnimationEnd(animation);
                         if (!show) {
                             binding.switchSelfVideoButton.setVisibility(View.GONE);
-                        }
+                        }else{
 
                         binding.switchSelfVideoButton.setEnabled(true);
-                    }
+                    }}
                 });
 
         }
@@ -2268,28 +2281,15 @@ public class CallActivity extends CallBaseActivity {
                                                                             true,
                                                                             type);
             } else {
-                if (!"screen".equals(type)) {
-                    magicPeerConnectionWrapper = new MagicPeerConnectionWrapper(peerConnectionFactory,
-                                                                                iceServers,
-                                                                                sdpConstraints,
-                                                                                sessionId,
-                                                                                callSession,
-                                                                                localMediaStream,
-                                                                                false,
-                                                                                false,
-                                                                                type);
-                } else {
-                    magicPeerConnectionWrapper = new MagicPeerConnectionWrapper(peerConnectionFactory,
-                                                                                iceServers,
-                                                                                sdpConstraints,
-                                                                                sessionId,
-                                                                                callSession,
-                        localMediaStream,
-                                                                                false,
-                                                                                false,
-                                                                                type);
-//                    binding.gridview1.setAdapter(participantsAdapter);
-                }
+                magicPeerConnectionWrapper = new MagicPeerConnectionWrapper(peerConnectionFactory,
+                                                                            iceServers,
+                                                                            sdpConstraints,
+                                                                            sessionId,
+                                                                            callSession,
+                                                                            localMediaStream,
+                                                                            false,
+                                                                            false,
+                                                                            type);
             }
 
             magicPeerConnectionWrapperList.add(magicPeerConnectionWrapper);
@@ -3024,10 +3024,10 @@ public class CallActivity extends CallBaseActivity {
             // show staff controls
             showStaffControls();
         }else if(
-            conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_CALL) ||
-            conversationType.equals(Conversation.ConversationType.ROOM_COMMITTEE_PUBLIC_CALL)
+            conversationType.equals(Conversation.ConversationType.ROOM_GROUP_PLENARY_CALL) ||
+            conversationType.equals(Conversation.ConversationType.ROOM_PUBLIC_PLENARY_CALL) ||
+            conversationType.equals(Conversation.ConversationType.ROOM_GROUP_COMMITTEE_CALL) ||
+            conversationType.equals(Conversation.ConversationType.ROOM_PUBLIC_COMMITTEE_CALL)
         ){
             // disabled for plenary and committee
             disableMeetingControlls();
@@ -3063,7 +3063,7 @@ public class CallActivity extends CallBaseActivity {
 
         // open vote sheet
         binding.voteButton.setOnClickListener(l -> {
-                Log.d(TAG, "Vote button clicked..");
+                Log.d(TAG, "Vote button clicked...");
 
                 final BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(CallActivity.this);
 
@@ -3451,7 +3451,7 @@ public class CallActivity extends CallBaseActivity {
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
-                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL)) {
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PUBLIC_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
                                 showTimerButton(true);
@@ -3521,7 +3521,7 @@ public class CallActivity extends CallBaseActivity {
 
                             Log.d(TAG, "Started speak request to action listenResponses........");
                             // show timer for plenary
-                            if (conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PLENARY_PUBLIC_CALL)) {
+                            if (conversationType.equals(Conversation.ConversationType.ROOM_GROUP_PLENARY_CALL) || conversationType.equals(Conversation.ConversationType.ROOM_PUBLIC_PLENARY_CALL)) {
                                 Log.d(TAG, "Show timer for plenary........");
                                 // show timer button
                                 showTimerButton(true);
@@ -3624,10 +3624,15 @@ public class CallActivity extends CallBaseActivity {
         binding.speakerButton.setVisibility(View.GONE);
         binding.microphoneButton.setVisibility(View.VISIBLE);
         binding.cameraButton.setVisibility(View.VISIBLE);
-//        binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
+
+        binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
 //        binding.selfVideoRenderer.setVisibility(View.VISIBLE);
+
+        binding.selfVideoRenderer.setVisibility(View.VISIBLE);
         if (cameraEnumerator.getDeviceNames().length < 2) {
             binding.switchSelfVideoButton.setVisibility(View.GONE);
+        }else{
+            binding.switchSelfVideoButton.setVisibility(View.VISIBLE);
         }
     }
 
@@ -3677,7 +3682,9 @@ public class CallActivity extends CallBaseActivity {
             binding.requestsLinearLayout.setVisibility(View.VISIBLE);
             binding.voteLinearLayout.setVisibility(View.VISIBLE);
             if (binding.timeLeftButton!=null){
+                //made the timeleftButton set visibility to Gone
                 binding.timeLeftButton.setVisibility(View.GONE);
+
             }
         }
 
@@ -3713,27 +3720,27 @@ public class CallActivity extends CallBaseActivity {
 
         // formart time left to mm:ss
         String timeLeftString = String.format("%02d:%02d",
-                        TimeUnit.SECONDS.toMinutes(timeLeft),
-                                TimeUnit.SECONDS.toSeconds(timeLeft) -
-                                    TimeUnit.MINUTES.toSeconds(TimeUnit.SECONDS.toMinutes(timeLeft))
-                            );
+            TimeUnit.SECONDS.toMinutes(timeLeft),
+            TimeUnit.SECONDS.toSeconds(timeLeft) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.SECONDS.toMinutes(timeLeft))
+        );
 
 
         Log.d(TAG, "Time String..: " + timeLeftString);
 
-            if(timeLeft>0){
-                binding.timeLeftButton.setText(timeLeftString);
+        if(timeLeft>0){
+            binding.timeLeftButton.setText(timeLeftString);
 
-                if(timeLeft > 60){
-                    binding.timeLeftButton.setBackgroundColor(Color.GREEN);
-                }else if(timeLeft < 30){
-                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_danger)))));
-                }else{
-                    binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
-                        "#" + Integer.toHexString (getResources().getColor(R.color.kikao_warning)))));
-                }
+            if(timeLeft > 60){
+                binding.timeLeftButton.setBackgroundColor(Color.GREEN);
+            }else if(timeLeft < 30){
+                binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                    "#" + Integer.toHexString (getResources().getColor(R.color.kikao_danger)))));
+            }else{
+                binding.timeLeftButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(
+                    "#" + Integer.toHexString (getResources().getColor(R.color.kikao_warning)))));
             }
+        }
 
     }
 
@@ -3783,7 +3790,8 @@ public class CallActivity extends CallBaseActivity {
                     // show waiting spinner
                     if(!otpText.getText().toString().isEmpty()){
                         if(spinner.getVisibility() == View.GONE) {
-                            spinner.setVisibility(View.VISIBLE);
+                            //disabled the spinner visibility to GONE from Visible
+                            spinner.setVisibility(View.GONE);
                             verifyOtpBtn.setVisibility(View.GONE);
                         }
                         verifyOtp(otpText.getText().toString());
@@ -4035,7 +4043,7 @@ public class CallActivity extends CallBaseActivity {
                                         if (openingTimeInt > nowTimestamp) {
                                             Log.d(TAG, "Show vote btn open....:");
                                             // show vote button
-                                            binding.voteButton.setVisibility(View.GONE);
+                                            binding.voteButton.setVisibility(View.VISIBLE);
                                             // listen to polls
                                             listenToPolls();
                                             // listen to shares
@@ -4046,7 +4054,7 @@ public class CallActivity extends CallBaseActivity {
                                 }
                             } else {
                                 Log.d(TAG, "No vote found....:");
-                                binding.voteButton.setVisibility(View.VISIBLE);
+                                binding.voteButton.setVisibility(View.GONE);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -4140,7 +4148,7 @@ public class CallActivity extends CallBaseActivity {
                                     voteSheetDialog.setOnDismissListener(dialog -> {
                                         // dismiss polls
 //                                            finish();
-                                        userHasPolls = true;
+                                        userHasPolls = false;
                                     });
 
                                     // use this to set vote
@@ -4152,25 +4160,38 @@ public class CallActivity extends CallBaseActivity {
 
 
                                     Log.d(TAG,"PollExpire...:" + pollExpire);
-
+                                    //Module: Enable Vote controls
                                     if (voteExpire > 0) {
                                         voteYesBtn.setEnabled(true);
                                         voteNoBtn.setEnabled(true);
                                         voteAbstainBtn.setEnabled(true);
-                                    }else{
+                                        voteRadio.setClickable(true);
+
+                                    }else {
                                         voteYesBtn.setEnabled(false);
                                         voteNoBtn.setEnabled(false);
                                         voteAbstainBtn.setEnabled(false);
+                                        voteRadio.setClickable(false);
+
                                     }
+                                    //greyout the vote options
+//                                    assert voteRadio != null;
+//                                        voteRadio.setClickable(false);
 
 
+
+                                    //End Vote controls
+
+
+                                    TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
+                                    voteTitle.setText(jsonObject1.getString("title"));
                                         voteRadio.setOnCheckedChangeListener((group, checkedId) -> {
 
                                             switch (checkedId) {
                                                 case R.id.voteYes:
                                                     // do operations specific to this selection
                                                     try {
-                                                        if (voteExpire >0)
+                                                        if (voteExpire > 0)
                                                         placeVote(voteOptions.get(0).getInt("id"));
                                                     } catch (JSONException e) {
                                                         e.printStackTrace();
@@ -4203,8 +4224,8 @@ public class CallActivity extends CallBaseActivity {
                                             }
                                         });
 //                                    }
-                                    TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
-                                    voteTitle.setText(jsonObject1.getString("title"));
+//                                    TextView voteTitle = voteSheetView.findViewById(R.id.voteTitle);
+//                                    voteTitle.setText(jsonObject1.getString("title"));
 
 //                                    if(!expireTime.equals("0")){
 //                                        countVoteTimer();
@@ -4261,7 +4282,7 @@ public class CallActivity extends CallBaseActivity {
 
                         voteSharesCount = jsonArray.length();
 
-                        // assing shares count to textview
+                        // passing shares count to textview
 
                         // update shares
                         View voteSheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.vote_footer_view, null);
@@ -4375,7 +4396,7 @@ public class CallActivity extends CallBaseActivity {
         }
     }
 
-
+    // Module: get voting results
     private void getVoteResults(){
         apiService.getVoteResults(credentials,pollId)
             .subscribeOn(Schedulers.io())
@@ -4706,8 +4727,12 @@ public class CallActivity extends CallBaseActivity {
                 listenFetchOpenVotes();
                 // listen to polls
 //                listenToPolls();
+//                listenToPolls();
                 // listen to shares
 //                if(pollId != null) {
+//                    listenToShares();
+//                }
+//                if(pollId != 0) {
 //                    listenToShares();
 //                }
             }
@@ -4716,6 +4741,7 @@ public class CallActivity extends CallBaseActivity {
     }
 
     // Module: Follow video
+
     public ParticipantDisplayItem getItem(int position) {
         final ArrayList<ParticipantDisplayItem> participantDisplayItemsFocus = new ArrayList<>();
         participantDisplayItemsFocus.addAll(participantDisplayItems.values());
@@ -4794,13 +4820,13 @@ public class CallActivity extends CallBaseActivity {
     }
 
     public void handleFocusVideo(int position) {
-        View convertView = null;
+//        View convertView = null;
         ParticipantDisplayItem participantDisplayItem = getItem(position);
 
         SurfaceViewRenderer surfaceViewRenderer;
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.call_item, null, false);
-            convertView = binding.focusVideoSurfaceView;
+//            convertView = binding.focusVideoSurfaceView;
             convertView.setVisibility(View.VISIBLE);
 
 //            surfaceViewRenderer = convertView.findViewById(R.id.focus_video_surface_view);
@@ -4820,13 +4846,20 @@ public class CallActivity extends CallBaseActivity {
                 Log.e(TAG, "error while initializing surfaceViewRenderer", e);
             }
         } else {
-            surfaceViewRenderer = convertView.findViewById(R.id.surface_view);
+            surfaceViewRenderer = findViewById(R.id.focus_video_surface_view);
         }
 
-        ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
+//        ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
 //         layoutParams.height = scaleGridViewItemHeight();
 //        layoutParams.height = 300;
 //        convertView.setLayoutParams(layoutParams);
+
+        // Module: surfaceViewrenderer params
+        ViewGroup.LayoutParams layoutParams = surfaceViewRenderer.getLayoutParams();
+         layoutParams.height = scaleGridViewItemHeight();
+        layoutParams.height = 720;
+        surfaceViewRenderer.setLayoutParams(layoutParams);
+        // End Module: surfaceviewrenderer params
 
 
         TextView nickTextView = convertView.findViewById(R.id.peer_nick_text_view);
@@ -4838,6 +4871,8 @@ public class CallActivity extends CallBaseActivity {
             videoTrack.addSink(surfaceViewRenderer);
             imageView.setVisibility(View.INVISIBLE);
             surfaceViewRenderer.setVisibility(View.VISIBLE);
+            button.setVisibility(View.VISIBLE);
+
             nickTextView.setVisibility(View.GONE);
         } else {
             imageView.setVisibility(View.VISIBLE);
@@ -4875,5 +4910,14 @@ public class CallActivity extends CallBaseActivity {
         }
     };
 
+    private void stopFollowingVideo(View button) {
+//        SurfaceViewRenderer surfaceViewRenderer;
+        surfaceViewRenderer = findViewById(R.id.focus_video_surface_view);
+        // surfaceViewRenderer = null;
+        button.setVisibility(View.GONE);
+
+        gridView.setVisibility(View.VISIBLE);
+        surfaceViewRenderer.setVisibility(View.GONE);
+    }
     // Module: END Follow video
 }

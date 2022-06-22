@@ -84,15 +84,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="invisible" />
-<!--            <Button-->
-<!--                android:id="@+id/button_close"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_alignRight="@+id/focus_video_surface_view"-->
-<!--                android:layout_alignTop="@+id/focus_video_surface_view"-->
-<!--                android:layout_marginRight="-5dp"-->
-<!--                android:layout_marginTop="-5dp"-->
-<!--                android:background="@drawable/ic_cancel_black_24dp" />-->
+<!--            A minimizing button for a shared screen-->
+            <Button
+                android:id="@+id/button_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignRight="@+id/focus_video_surface_view"
+                android:layout_alignTop="@+id/focus_video_surface_view"
+                android:layout_marginRight="-5dp"
+                android:layout_marginTop="-5dp"
+                android:background="@drawable/ic_cancel_black_24dp" />
 
             <FrameLayout
                 android:id="@+id/selfVideoViewWrapper"

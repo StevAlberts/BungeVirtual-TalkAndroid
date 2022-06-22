@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -12,14 +13,14 @@
 
 
         <LinearLayout
-            android:id="@+id/main_vote"
+            android:id="@+id/main_votes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:orientation="vertical"
             android:padding="8dp">
 
-
+            <include layout="@layout/vote_header_view" />
             <RadioGroup
                 android:id="@+id/radioGroup"
                 android:layout_width="match_parent"
@@ -57,10 +58,7 @@
 
             </RadioGroup>
 
-            <include layout="@layout/vote_header_view" />
-
             <include layout="@layout/vote_footer_view" />
-
 
         </LinearLayout>
     </RelativeLayout>
